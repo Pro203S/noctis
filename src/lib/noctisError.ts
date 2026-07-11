@@ -45,9 +45,14 @@ const ERROR_CODE_MAP: Readonly<Record<number, string>> = {
 export default class NoctisError extends Error {
     constructor(
         public statusCode: number,
-        message?: string
+        public body?: any
     ) {
-        super(`${statusCode}: ${message ?? ERROR_CODE_MAP[statusCode] ?? "Unknown Error"}`);
+        super(`${statusCode}: ${body ?? ERROR_CODE_MAP[statusCode] ?? "Unknown Error"}`);
+    }
+
+    public getResponse() {
+        if (!this.body) return { "message": ERROR_CODE_MAP[this.statusCode] ?? "Unknown Error" };
+        return this.body;
     }
 
     /**
