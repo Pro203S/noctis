@@ -8,6 +8,7 @@
     "jsx": "react-jsx",
     "rootDir": "./src",
     "types": ["node"],
+    "declaration": true,
 
     // Best practices
     "strict": true,
