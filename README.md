@@ -2,9 +2,9 @@
 
 사용 예시:
 ```typescript
-import noctis, { NoctisError, static, next } from 'noctis';
+import Noctis, { NoctisError, static, next } from 'noctis';
 
-const server = noctis({
+const server = new Noctis({
     "port": 3000
 });
 
