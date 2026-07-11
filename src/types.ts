@@ -1,5 +1,22 @@
+/** Common HTTP headers. */
+type BasicHeaders = Partial<{
+    "accept": string;
+    "accept-encoding": string;
+    "accept-language": string;
+    "authorization": string;
+    "cache-control": string;
+    "connection": string;
+    "content-length": string;
+    "content-type": string;
+    "cookie": string;
+    "host": string;
+    "origin": string;
+    "referer": string;
+    "user-agent": string;
+}>;
+
 /** HTTP headers represented as name-value pairs. */
-type Headers = Record<string, string>;
+type Headers = BasicHeaders & Record<string, string>;
 
 /** URL search parameters represented as name-value pairs. */
 type SearchParams = Record<string, string>;
@@ -9,25 +26,7 @@ type Cookie = {
     /** The cookie name. */
     "name": string,
     /** The cookie value. */
-    "value": string,
-    /** The date and time at which the cookie expires. */
-    "expires"?: Date,
-    /** The cookie lifetime, in seconds. */
-    "maxAge"?: number,
-    /** The domain to which the cookie is sent. */
-    "domain"?: string,
-    /** The path to which the cookie is sent. */
-    "path"?: string,
-    /** Whether the cookie is sent only over secure connections. */
-    "secure"?: boolean,
-    /** Whether the cookie is inaccessible to client-side scripts. */
-    "httpOnly"?: string,
-    /** The cookie's SameSite policy. */
-    "sameSite"?: boolean | "lax" | "strict" | "none";
-    /** The cookie's priority. */
-    "priority"?: "low" | "medium" | "high",
-    /** Whether the cookie uses partitioned storage. */
-    "partitioned"?: boolean
+    "value": string
 };
 
 /** Cookies represented as name-cookie pairs. */
@@ -55,10 +54,14 @@ export type NoctisConfig = Partial<{
         /** The route handling time, in microseconds. */
         "time": number
     }) => any,
-    /** Called when an error thrown by a route is not handled. */
+    /** 루트를 핸들 중 오류가 발생했을 때 호출되는 콜백입니다. */
     "unhandledRouteError": (route: string, err: Error) => any,
     /** Whether routes that return no value automatically respond with status 204. */
-    "autoNoContent": boolean
+    "autoNoContent": boolean,
+    /** 없는 루트에 접근했을 때 반환할 body입니다. */
+    "responseNotFound": (path: string) => any;
+    /** 없는 메서드에 접근했을 때 반환할 body입니다. */
+    "responseMethodNotAllowed": (path: string) => any;
 }>;
 
 /** Values and response helpers provided to a route handler. */
@@ -90,3 +93,6 @@ export type NoctisRouteParameters = {
     /** Sets HTTP response headers. */
     "headers": (headers: Headers) => any;
 };
+
+export type NoctisRouteHandler = (route: string, handler: (params: NoctisRouteParameters) => any) => any;
+export type NoctisRouteHandlerCallback = (params: NoctisRouteParameters) => any;
