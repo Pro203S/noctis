@@ -10,6 +10,39 @@ type HandlerInfo = {
     "path": string
 };
 
+type MatchedHandler = HandlerInfo & {
+    "pathParams": Record<string, string>
+};
+
+const matchRoute = (route: string, pathname: string): Record<string, string> | null => {
+    const routeSegments = route.split("/").filter(Boolean);
+    const pathSegments = pathname.split("/").filter(Boolean);
+    if (routeSegments.length !== pathSegments.length) return null;
+
+    const pathParams: Record<string, string> = {};
+
+    for (let index = 0; index < routeSegments.length; index++) {
+        const routeSegment = routeSegments[index]!;
+        const pathSegment = pathSegments[index]!;
+
+        if (routeSegment.startsWith(":")) {
+            const name = routeSegment.slice(1);
+            if (!name) return null;
+
+            try {
+                pathParams[name] = decodeURIComponent(pathSegment);
+            } catch {
+                throw new NoctisError(400);
+            }
+            continue;
+        }
+
+        if (routeSegment !== pathSegment) return null;
+    }
+
+    return pathParams;
+};
+
 const getContentType = (response: any) => {
     let type = "text/plain";
 
@@ -65,8 +98,20 @@ export default class Noctis {
                 const now = usNow();
 
                 const requestUrl = new URL(url, `${config.https ? "https" : "http"}://${headers.host ?? "localhost"}`);
-                const found = this._handlers.find(v => v.path === requestUrl.pathname
-                    && (v.method === "any" || v.method.toLowerCase() === method.toLowerCase()));
+                const methodHandlers = this._handlers.filter(v => v.method === "any" || v.method.toLowerCase() === method.toLowerCase());
+                const orderedHandlers = [
+                    ...methodHandlers.filter(v => !v.path.split("/").some(segment => segment.startsWith(":"))),
+                    ...methodHandlers.filter(v => v.path.split("/").some(segment => segment.startsWith(":")))
+                ];
+
+                let found: MatchedHandler | undefined;
+                for (const routeHandler of orderedHandlers) {
+                    const pathParams = matchRoute(routeHandler.path, requestUrl.pathname);
+                    if (pathParams !== null) {
+                        found = { ...routeHandler, pathParams };
+                        break;
+                    }
+                }
 
                 if (!found) {
                     config.routeHandled?.({ "route": url, "status": 404, "time": usNow() - now });
@@ -113,7 +158,7 @@ export default class Noctis {
                         }
                     },
                     "text": async () => rawBody.toString(),
-                    "pathParams": {},
+                    "pathParams": found.pathParams,
                     "requestHeaders": Object.fromEntries(
                         Object.entries(headers).flatMap(([key, value]) => {
                             if (value === undefined) return [];
