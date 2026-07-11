@@ -49,4 +49,14 @@ export default class NoctisError extends Error {
     ) {
         super(`${statusCode}: ${message ?? ERROR_CODE_MAP[statusCode] ?? "Unknown Error"}`);
     }
+
+    /**
+     * Checks whether an object is a NoctisError.
+     *
+     * @param error The object to check.
+     * @returns True if the object is a NoctisError.
+     */
+    public static is(error: unknown): error is NoctisError {
+        return error instanceof NoctisError;
+    }
 }
