@@ -31,6 +31,11 @@ server.get("/files/:id", async () => {
         "size": 100
     };
 });
+server.any("/files", ({ method }) => {
+    if (method === "delete") throw new NoctisError(405);
+
+    return method;
+});
 
 (async () => {
     await server.listen();

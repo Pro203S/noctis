@@ -28,5 +28,6 @@
     "noPropertyAccessFromIndexSignature": false,
 
     "outDir": "./dist"
-  }
+  },
+  "exclude": ["./tests/**/*"]
 }

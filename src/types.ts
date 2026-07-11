@@ -81,7 +81,9 @@ export type NoctisRouteParameters = {
     /** The request URL. */
     "url": URL,
     /** Cookies received with the request. */
-    "cookies": Cookies
+    "cookies": Cookies,
+    /** The request method in lower case. */
+    "method": string | "get" | "post" | "put" | "delete" | "patch",
 
     /** Sets the HTTP response status code. */
     "status": (status: number) => any;
