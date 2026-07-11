@@ -1,0 +1,41 @@
+{
+    "name": "noctis",
+    "version": "0.0.0",
+    "author": "Pro203S",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Pro203S/noctis.git"
+    },
+    "main": "./dist/index.js",
+    "devDependencies": {
+        "@types/bun": "latest"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
+    },
+    "bugs": {
+        "url": "https://github.com/Pro203S/noctis/issues"
+    },
+    "description": "TypeScript JSON Database",
+    "homepage": "https://github.com/Pro203S/noctis#readme",
+    "keywords": [
+        "backend",
+        "api",
+        "server",
+        "framework"
+    ],
+    "license": "MIT",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc --watch"
+    },
+    "type": "module",
+    "types": "./dist/index.d.ts"
+}
