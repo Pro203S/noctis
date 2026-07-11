@@ -9,6 +9,7 @@
     "rootDir": "./src",
     "types": ["node"],
     "declaration": true,
+    "removeComments": false,
 
     // Best practices
     "strict": true,
@@ -24,5 +25,5 @@
 
     "outDir": "./dist"
   },
-  "exclude": ["./tests/**/*"]
+  "exclude": ["./tests/**/*", "./dist/**/*"]
 }
