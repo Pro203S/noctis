@@ -51,7 +51,7 @@ export default class NoctisError extends Error {
     }
 
     public getResponse() {
-        if (!this.body) return { "message": ERROR_CODE_MAP[this.statusCode] ?? "Unknown Error" };
+        if (!this.body) return null;
         return this.body;
     }
 

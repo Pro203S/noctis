@@ -76,6 +76,7 @@ const getResponseBody = (response: any, contentType: string) => {
         return JSON.stringify(response);
     }
     if (typeof response === "string" || response instanceof Uint8Array) return response;
+    if (!response) return null;
     return String(response);
 };
 
@@ -207,10 +208,7 @@ export default class Noctis {
                     res.setHeader("Content-Type", type);
                     return res.end(getResponseBody(resp, type));
                 }
-                config.unhandledRouteError?.(req.url ?? "<Unknown>", err as Error);
-                if (!res.headersSent)
-                    res.writeHead(500);
-                return res.end();
+                throw err;
             }
         };
 
