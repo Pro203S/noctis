@@ -1,120 +1,310 @@
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { detectBufferMimeType } from "../lib/mime";
 import NoctisError from "../lib/noctisError";
 import usNow from "../lib/us";
 import type { HTTPServer, ServerHandler } from "../server/creator";
 import createServer from "../server/creator";
-import type { NoctisConfig, NoctisRouteHandler, NoctisRouteHandlerCallback } from "../types";
+import type { NoctisConfig, NoctisRouteHandler, NoctisRouteHandlerCallback, NoctisRouteParameters } from "../types";
+
+type RouteToken = readonly [type: 0 | 1 | 2, value: string];
 
 type HandlerInfo = {
     "cb": NoctisRouteHandlerCallback,
     "method": string,
-    "path": string
+    "path": string,
+    "tokens": readonly RouteToken[],
+    "wildcard": boolean,
+    "valid": boolean
 };
 
-type MatchedHandler = HandlerInfo & {
+type MatchedHandler = {
+    "handler": HandlerInfo,
     "pathParams": Record<string, string>
 };
 
-const matchRoute = (route: string, pathname: string): Record<string, string> | null => {
-    const routeSegments = route.split("/").filter(Boolean);
-    const pathSegments = pathname.split("/").filter(Boolean);
-    const wildcardIndex = routeSegments.findIndex(segment => segment.startsWith("*"));
+const EMPTY_BODY = Buffer.alloc(0);
 
-    if (wildcardIndex !== -1) {
-        if (wildcardIndex !== routeSegments.length - 1 || pathSegments.length < wildcardIndex) return null;
-    } else if (routeSegments.length !== pathSegments.length) {
+const normalizePath = (pathname: string) => {
+    if (pathname === "/") return pathname;
+    if (!pathname.includes("//") && !pathname.endsWith("/")) return pathname;
+
+    const segments = pathname.split("/").filter(Boolean);
+    return segments.length === 0 ? "/" : `/${segments.join("/")}`;
+};
+
+const getRequestPath = (url: string, secure: boolean, host: string | undefined) => {
+    const queryIndex = url.indexOf("?");
+    const rawPath = queryIndex === -1 ? url : url.slice(0, queryIndex);
+
+    // WHATWG URL parsing is required for absolute-form targets and dot-segment normalization.
+    const mayContainDotSegment = (rawPath.includes("/.") || rawPath.includes("%"))
+        && /(?:^|\/)(?:\.{1,2}|%2e)/i.test(rawPath);
+    if (!rawPath.startsWith("/") || mayContainDotSegment) {
+        return normalizePath(new URL(url, `${secure ? "https" : "http"}://${host ?? "localhost"}`).pathname);
+    }
+
+    return normalizePath(rawPath);
+};
+
+const compileRoute = (path: string, method: string, cb: NoctisRouteHandlerCallback): HandlerInfo => {
+    const segments = path.split("/").filter(Boolean);
+    const tokens: RouteToken[] = [];
+    let wildcard = false;
+    let valid = true;
+
+    for (let index = 0; index < segments.length; index++) {
+        const segment = segments[index]!;
+        const prefix = segment.charCodeAt(0);
+
+        if (prefix === 58) {
+            const name = segment.slice(1);
+            if (!name) valid = false;
+            tokens.push([1, name]);
+        } else if (prefix === 42) {
+            const name = segment.slice(1) || "*";
+            wildcard = true;
+            if (index !== segments.length - 1) valid = false;
+            tokens.push([2, name]);
+        } else {
+            tokens.push([0, segment]);
+        }
+    }
+
+    return { cb, method: method.toLowerCase(), path, tokens, wildcard, valid };
+};
+
+const matchDynamicRoute = (handler: HandlerInfo, pathSegments: readonly string[]) => {
+    if (!handler.valid) return null;
+    if (handler.wildcard) {
+        if (pathSegments.length < handler.tokens.length - 1) return null;
+    } else if (pathSegments.length !== handler.tokens.length) {
         return null;
     }
 
     const pathParams: Record<string, string> = {};
 
-    for (let index = 0; index < routeSegments.length; index++) {
-        const routeSegment = routeSegments[index]!;
+    for (let index = 0; index < handler.tokens.length; index++) {
+        const [type, value] = handler.tokens[index]!;
+        const pathSegment = pathSegments[index];
 
-        if (routeSegment.startsWith("*")) {
-            const name = routeSegment.slice(1) || "*";
-
+        if (type === 2) {
+            const remaining: string[] = [];
             try {
-                pathParams[name] = pathSegments.slice(index)
-                    .map(segment => decodeURIComponent(segment))
-                    .join("/");
+                for (let offset = index; offset < pathSegments.length; offset++) {
+                    remaining.push(decodeURIComponent(pathSegments[offset]!));
+                }
             } catch {
                 throw new NoctisError(400);
             }
+            pathParams[value] = remaining.join("/");
             return pathParams;
         }
 
-        const pathSegment = pathSegments[index];
         if (pathSegment === undefined) return null;
-
-        if (routeSegment.startsWith(":")) {
-            const name = routeSegment.slice(1);
-            if (!name) return null;
-
-            try {
-                pathParams[name] = decodeURIComponent(pathSegment);
-            } catch {
-                throw new NoctisError(400);
-            }
+        if (type === 0) {
+            if (value !== pathSegment) return null;
             continue;
         }
 
-        if (routeSegment !== pathSegment) return null;
+        try {
+            pathParams[value] = decodeURIComponent(pathSegment);
+        } catch {
+            throw new NoctisError(400);
+        }
     }
 
     return pathParams;
 };
 
-const getContentType = (response: any) => {
-    if (Buffer.isBuffer(response)) return detectBufferMimeType(response);
-
-    let type = "text/plain";
-
-    switch (typeof response) {
-        case "string":
-            if (response.startsWith("<")) {
-                type = "text/html";
-                break;
-            }
-            break;
-        case "object":
-            if (response !== null && !(response instanceof Uint8Array)) {
-                type = "application/json";
-                break;
-            }
-            response = String(response);
-            break;
-        case "function":
-            response = response.toString();
-            break;
-        default:
-            response = String(response);
-            break;
+const readBody = (req: IncomingMessage) => {
+    const contentLength = req.headers["content-length"];
+    if ((!contentLength || contentLength === "0") && req.headers["transfer-encoding"] === undefined) {
+        return EMPTY_BODY;
     }
 
-    return type;
-}
+    return new Promise<Buffer>((resolve, reject) => {
+        const chunks: Uint8Array[] = [];
 
-const getResponseBody = (response: any, contentType: string) => {
-    if (contentType === "application/json" && typeof response !== "string") {
-        return JSON.stringify(response);
-    }
-    if (typeof response === "string" || response instanceof Uint8Array) return response;
-    if (!response) return null;
-    return String(response);
+        req.on("data", (chunk: Uint8Array) => chunks.push(chunk));
+        req.once("end", () => {
+            if (chunks.length === 0) resolve(EMPTY_BODY);
+            else if (chunks.length === 1) {
+                const chunk = chunks[0]!;
+                resolve(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+            } else resolve(Buffer.concat(chunks));
+        });
+        req.once("aborted", () => reject(new NoctisError(400)));
+        req.once("error", reject);
+    });
 };
 
-function* bufferChunks(buffer: Buffer, chunkSize = 64 * 1024) {
-    for (let offset = 0; offset < buffer.length; offset += chunkSize) {
-        yield buffer.subarray(offset, offset + chunkSize);
+class RouteContext implements NoctisRouteParameters {
+    private _headers?: NoctisRouteParameters["headers"];
+    private _cookies?: NoctisRouteParameters["cookies"];
+    private _url?: URL;
+    private _formDataCallback?: NoctisRouteParameters["formData"];
+    private _urlEncodedCallback?: NoctisRouteParameters["urlEncoded"];
+    private _jsonCallback?: NoctisRouteParameters["json"];
+    private _textCallback?: NoctisRouteParameters["text"];
+    private _setHeadersCallback?: NoctisRouteParameters["setHeaders"];
+
+    constructor(
+        private readonly req: IncomingMessage,
+        private readonly res: ServerResponse,
+        private readonly rawBody: Buffer,
+        public readonly pathParams: Record<string, string>,
+        public readonly method: string,
+        private readonly requestUrl: string,
+        private readonly secure: boolean
+    ) { }
+
+    get formData() {
+        return this._formDataCallback ??= this._parseFormData.bind(this);
+    }
+
+    private async _parseFormData() {
+        const contentType = this.req.headers["content-type"];
+        const supported = contentType?.startsWith("multipart/form-data")
+            || contentType?.startsWith("application/x-www-form-urlencoded");
+        if (!contentType || !supported) throw new NoctisError(415);
+
+        try {
+            return await new Response(this.rawBody as unknown as BodyInit, {
+                "headers": { "Content-Type": contentType }
+            }).formData();
+        } catch {
+            throw new NoctisError(400);
+        }
+    }
+
+    get urlEncoded() {
+        return this._urlEncodedCallback ??= this._parseUrlEncoded.bind(this);
+    }
+
+    private async _parseUrlEncoded() {
+        return Object.fromEntries(new URLSearchParams(this.rawBody.toString()));
+    }
+
+    get json() {
+        return this._jsonCallback ??= this._parseJson.bind(this);
+    }
+
+    private async _parseJson() {
+        try {
+            return JSON.parse(this.rawBody.toString());
+        } catch {
+            throw new NoctisError(400);
+        }
+    }
+
+    get text() {
+        return this._textCallback ??= this._parseText.bind(this);
+    }
+
+    private async _parseText() {
+        return this.rawBody.toString();
+    }
+
+    get headers() {
+        if (this._headers) return this._headers;
+
+        const normalized: Record<string, string> = {};
+        for (const name in this.req.headers) {
+            const value = this.req.headers[name];
+            if (value !== undefined) normalized[name] = Array.isArray(value) ? value.join(", ") : value;
+        }
+        return this._headers = normalized;
+    }
+
+    get ip() {
+        return this.req.socket.remoteAddress ?? "";
+    }
+
+    get url() {
+        return this._url ??= new URL(
+            this.requestUrl,
+            `${this.secure ? "https" : "http"}://${this.req.headers.host ?? "localhost"}`
+        );
+    }
+
+    get cookies() {
+        if (this._cookies) return this._cookies;
+
+        const cookies: NoctisRouteParameters["cookies"] = {};
+        const header = this.req.headers.cookie;
+        if (header) {
+            const values = header.split(";");
+            for (let index = 0; index < values.length; index++) {
+                const value = values[index]!;
+                const separator = value.indexOf("=");
+                if (separator === -1) continue;
+
+                const name = value.slice(0, separator).trim();
+                if (!name) continue;
+                cookies[name] = {
+                    name,
+                    "value": decodeURIComponent(value.slice(separator + 1).trim())
+                };
+            }
+        }
+        return this._cookies = cookies;
+    }
+
+    get setHeaders() {
+        return this._setHeadersCallback ??= this._setHeaders.bind(this);
+    }
+
+    private _setHeaders(headers: NoctisRouteParameters["headers"]) {
+        for (const name in headers) this.res.setHeader(name, headers[name]!);
     }
 }
+
+const writeResponse = (res: ServerResponse, response: any) => {
+    if (Buffer.isBuffer(response)) {
+        if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", detectBufferMimeType(response));
+        if (!res.hasHeader("Content-Length")) res.setHeader("Content-Length", response.length);
+        res.end(response);
+        return;
+    }
+
+    if (typeof response === "string") {
+        if (!res.hasHeader("Content-Type")) {
+            res.setHeader("Content-Type", response.startsWith("<") ? "text/html" : "text/plain");
+        }
+        res.end(response);
+        return;
+    }
+
+    if (response === null || response === undefined) {
+        res.end();
+        return;
+    }
+
+    if (response instanceof Uint8Array) {
+        if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", "application/octet-stream");
+        res.end(response);
+        return;
+    }
+
+    if (typeof response === "object") {
+        if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(response));
+        return;
+    }
+
+    if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", "text/plain");
+    res.end(String(response));
+};
+
+const isPromiseLike = (value: any): value is PromiseLike<any> => {
+    return value !== null && (typeof value === "object" || typeof value === "function")
+        && typeof value.then === "function";
+};
 
 export default class Noctis {
     private _server!: HTTPServer;
-    private _handlers: HandlerInfo[] = [];
+    private _staticHandlers = new Map<string, HandlerInfo[]>();
+    private _dynamicHandlers: HandlerInfo[] = [];
 
     /**
      * Noctis의 새 인스턴스를 만듭니다.
@@ -122,137 +312,98 @@ export default class Noctis {
      * @param config Noctis 서버 설정
      */
     constructor(public config: NoctisConfig) {
+        const secure = Boolean(config.https);
+        const onHandled = config.routeHandled;
+
         const handler: ServerHandler = async (req, res) => {
             try {
                 const { url, method, headers } = req;
-                if (!url || !method || !headers) {
-                    throw new Error("Cannot spectify url, method or headers");
-                }
-                const now = usNow();
+                if (!url || !method) throw new Error("Cannot specify URL or method");
 
-                const requestUrl = new URL(url, `${config.https ? "https" : "http"}://${headers.host ?? "localhost"}`);
-                const methodHandlers = this._handlers.filter(v => v.method === "any" || v.method.toLowerCase() === method.toLowerCase());
-                const orderedHandlers = [
-                    ...methodHandlers.filter(v => !v.path.split("/").some(segment => segment.startsWith(":") || segment.startsWith("*"))),
-                    ...methodHandlers.filter(v => v.path.split("/").some(segment => segment.startsWith(":") || segment.startsWith("*")))
-                ];
-
-                let found: MatchedHandler | undefined;
-                for (const routeHandler of orderedHandlers) {
-                    const pathParams = matchRoute(routeHandler.path, requestUrl.pathname);
-                    if (pathParams !== null) {
-                        found = { ...routeHandler, pathParams };
-                        break;
-                    }
-                }
+                const startedAt = onHandled ? usNow() : 0;
+                const normalizedMethod = method.toLowerCase();
+                const pathname = getRequestPath(url, secure, headers.host);
+                const found = this._findHandler(pathname, normalizedMethod);
 
                 if (!found) {
-                    config.routeHandled?.({ "route": url, "status": 404, "time": usNow() - now });
                     res.statusCode = 404;
-                    const resp = config.responseNotFound ? config.responseNotFound(url) : "Not Found";
-                    const type = getContentType(resp);
-                    res.setHeader("Content-Type", type);
-                    return res.end(getResponseBody(resp, type));
-                }
-
-                const body: Uint8Array[] = [];
-                req.on("data", (chunk) => body.push(chunk));
-                await new Promise(r => req.on("end", r));
-
-                const rawBody = Buffer.concat(body);
-
-                const response = await found.cb({
-                    "formData": async () => {
-                        const contentType = headers["content-type"];
-                        const isFormData = contentType?.startsWith("multipart/form-data")
-                            || contentType?.startsWith("application/x-www-form-urlencoded");
-
-                        if (!contentType || !isFormData) {
-                            throw new NoctisError(415);
-                        }
-
-                        try {
-                            return await new Response(rawBody, {
-                                "headers": { "Content-Type": contentType }
-                            }).formData();
-                        } catch {
-                            throw new NoctisError(400);
-                        }
-                    },
-                    "urlEncoded": async () => {
-                        const params = new URLSearchParams(rawBody.toString());
-                        return Object.fromEntries(params.entries());
-                    },
-                    "json": async () => {
-                        try {
-                            return JSON.parse(rawBody.toString());
-                        } catch {
-                            throw new NoctisError(400);
-                        }
-                    },
-                    "text": async () => rawBody.toString(),
-                    "pathParams": found.pathParams,
-                    "headers": Object.fromEntries(
-                        Object.entries(headers).flatMap(([key, value]) => {
-                            if (value === undefined) return [];
-                            return [[key, Array.isArray(value) ? value.join(", ") : value]];
-                        })
-                    ),
-                    "ip": req.socket.remoteAddress ?? "",
-                    "url": requestUrl,
-                    "cookies": Object.fromEntries(
-                        (headers.cookie ?? "").split(";").flatMap(value => {
-                            const separator = value.indexOf("=");
-                            if (separator === -1) return [];
-
-                            const name = value.slice(0, separator).trim();
-                            const cookieValue = value.slice(separator + 1).trim();
-                            if (!name) return [];
-
-                            return [[name, { name, "value": decodeURIComponent(cookieValue) }]];
-                        })
-                    ),
-                    "method": method.toLowerCase(),
-                    "setHeaders": responseHeaders => {
-                        for (const [name, value] of Object.entries(responseHeaders)) {
-                            res.setHeader(name, value);
-                        }
-                    }
-                });
-
-                if (response === undefined || response === null) {
-                    if (config.autoNoContent !== false) res.statusCode = 204;
-                    config.routeHandled?.({ "route": url, "status": res.statusCode, "time": usNow() - now });
-                    return res.end();
-                }
-
-                const type = getContentType(response);
-                if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", type);
-
-                if (Buffer.isBuffer(response)) {
-                    if (!res.hasHeader("Content-Length")) {
-                        res.setHeader("Content-Length", String(response.length));
-                    }
-                    await pipeline(Readable.from(bufferChunks(response)), res);
-                    config.routeHandled?.({ "route": url, "status": res.statusCode, "time": usNow() - now });
+                    const response = config.responseNotFound ? config.responseNotFound(url) : "Not Found";
+                    writeResponse(res, response);
+                    onHandled?.({ "route": url, "status": 404, "time": usNow() - startedAt });
                     return;
                 }
 
-                config.routeHandled?.({ "route": url, "status": res.statusCode, "time": usNow() - now });
-                return res.end(getResponseBody(response, type));
-            } catch (err) {
-                if (NoctisError.is(err)) {
-                    res.statusCode = err.statusCode;
-                    const resp = err.getResponse();
-                    const type = getContentType(resp);
-                    res.setHeader("Content-Type", type);
-                    return res.end(getResponseBody(resp, type));
+                const body = readBody(req);
+                const rawBody = Buffer.isBuffer(body) ? body : await body;
+                const context = new RouteContext(
+                    req,
+                    res,
+                    rawBody,
+                    found.pathParams,
+                    normalizedMethod,
+                    url,
+                    secure
+                );
+                const result = found.handler.cb(context);
+                const response = isPromiseLike(result) ? await result : result;
+
+                if (response === undefined || response === null) {
+                    if (config.autoNoContent !== false) res.statusCode = 204;
+                    res.end();
+                } else {
+                    writeResponse(res, response);
                 }
-                throw err;
+
+                onHandled?.({ "route": url, "status": res.statusCode, "time": usNow() - startedAt });
+            } catch (error) {
+                if (NoctisError.is(error)) {
+                    res.statusCode = error.statusCode;
+                    writeResponse(res, error.getResponse());
+                    return;
+                }
+                throw error;
             }
         };
 
-        this._server = createServer(handler, Boolean(config.https), config.https?.cert, config.https?.key);
+        this._server = createServer(handler, secure, config.https?.key, config.https?.cert);
+    }
+
+    private _findHandler(pathname: string, method: string): MatchedHandler | undefined {
+        const staticHandlers = this._staticHandlers.get(pathname);
+        if (staticHandlers) {
+            for (let index = 0; index < staticHandlers.length; index++) {
+                const handler = staticHandlers[index]!;
+                if (handler.method === "any" || handler.method === method) {
+                    return { handler, "pathParams": {} };
+                }
+            }
+        }
+
+        if (this._dynamicHandlers.length === 0) return;
+        const pathSegments = pathname.split("/").filter(Boolean);
+
+        for (let index = 0; index < this._dynamicHandlers.length; index++) {
+            const handler = this._dynamicHandlers[index]!;
+            if (handler.method !== "any" && handler.method !== method) continue;
+
+            const pathParams = matchDynamicRoute(handler, pathSegments);
+            if (pathParams !== null) return { handler, pathParams };
+        }
+    }
+
+    private _register(method: string, path: string, callback: NoctisRouteHandlerCallback) {
+        const handler = compileRoute(path, method, callback);
+        const dynamic = handler.tokens.some(([type]) => type !== 0);
+
+        if (dynamic) {
+            this._dynamicHandlers.push(handler);
+            return;
+        }
+
+        const normalizedPath = normalizePath(path);
+        const handlers = this._staticHandlers.get(normalizedPath);
+        if (handlers) handlers.push(handler);
+        else this._staticHandlers.set(normalizedPath, [handler]);
     }
 
     /**
@@ -264,20 +415,14 @@ export default class Noctis {
         return new Promise<void>((resolve, reject) => {
             try {
                 this._server.listen(this.config.port ?? 3000, resolve);
-            } catch (err) {
-                reject(err);
+            } catch (error) {
+                reject(error);
             }
         });
     }
 
-    /**
-     * 모든 메서드의 요청을 받습니다.
-     */
+    /** 모든 메서드의 요청을 받습니다. */
     any: NoctisRouteHandler = (route, handler) => {
-        this._handlers.push({
-            "path": route,
-            "method": "any",
-            "cb": handler
-        });
+        this._register("any", route, handler);
     }
 }

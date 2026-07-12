@@ -11,6 +11,13 @@ import type { NoctisRouteHandlerCallback } from "../types";
  */
 const fileServe = (dir: string): NoctisRouteHandlerCallback => {
     const root = path.resolve(dir);
+    const rootRealPath = fs.realpath(root);
+
+    const isOutsideRoot = (relativePath: string) => {
+        return relativePath === ".."
+            || relativePath.startsWith(`..${path.sep}`)
+            || path.isAbsolute(relativePath);
+    };
 
     return async ({ setHeaders, pathParams }) => {
         const requestedPath = pathParams["*"] ?? Object.values(pathParams).at(-1) ?? "";
@@ -18,32 +25,33 @@ const fileServe = (dir: string): NoctisRouteHandlerCallback => {
 
         let filePath = path.resolve(root, requestedPath);
         const relativePath = path.relative(root, filePath);
-        if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
-            throw new NoctisError(403);
-        }
+        if (isOutsideRoot(relativePath)) throw new NoctisError(403);
 
         try {
             const initialStat = await fs.stat(filePath);
-            if (initialStat.isDirectory()) filePath = path.join(filePath, "index.html");
-
-            const [rootRealPath, fileRealPath, stat] = await Promise.all([
-                fs.realpath(root),
-                fs.realpath(filePath),
-                fs.stat(filePath)
-            ]);
-            const realRelativePath = path.relative(rootRealPath, fileRealPath);
-
-            if (realRelativePath.startsWith("..") || path.isAbsolute(realRelativePath)) {
-                throw new NoctisError(403);
+            let stat = initialStat;
+            if (initialStat.isDirectory()) {
+                filePath = path.join(filePath, "index.html");
+                stat = await fs.stat(filePath);
             }
+
+            const [resolvedRoot, fileRealPath] = await Promise.all([
+                rootRealPath,
+                fs.realpath(filePath)
+            ]);
+            const realRelativePath = path.relative(resolvedRoot, fileRealPath);
+
+            if (isOutsideRoot(realRelativePath)) throw new NoctisError(403);
             if (!stat.isFile()) throw new NoctisError(404);
 
+            const contents = await fs.readFile(fileRealPath);
+
             setHeaders({
-                "Content-Length": String(stat.size),
+                "Content-Length": String(contents.length),
                 "Content-Type": getMimeType(filePath)
             });
 
-            return await fs.readFile(fileRealPath);
+            return contents;
         } catch (error) {
             if (NoctisError.is(error)) throw error;
             if ((error as NodeJS.ErrnoException).code === "ENOENT"

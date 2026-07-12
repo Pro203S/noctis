@@ -57,19 +57,15 @@ export const detectBufferMimeType = (buffer: Buffer) => {
     if (startsWith(buffer, [0x1f, 0x8b])) return "application/gzip";
     if (startsWith(buffer, [0x00, 0x61, 0x73, 0x6d])) return "application/wasm";
 
-    const text = buffer.toString("utf8");
+    const text = buffer.subarray(0, Math.min(buffer.length, 4096)).toString("utf8");
     if (!text.includes("\uFFFD") && !text.includes("\0")) {
         const trimmed = text.trimStart();
         if (/^<!doctype html\b/i.test(trimmed) || /^<html\b/i.test(trimmed)) {
             return "text/html; charset=utf-8";
         }
         if (/^<svg\b/i.test(trimmed)) return "image/svg+xml; charset=utf-8";
-        try {
-            JSON.parse(trimmed);
-            return "application/json; charset=utf-8";
-        } catch {
-            return "text/plain; charset=utf-8";
-        }
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) return "application/json; charset=utf-8";
+        return "text/plain; charset=utf-8";
     }
 
     return "application/octet-stream";
