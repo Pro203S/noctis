@@ -192,7 +192,7 @@ export default class Noctis {
                     },
                     "text": async () => rawBody.toString(),
                     "pathParams": found.pathParams,
-                    "requestHeaders": Object.fromEntries(
+                    "headers": Object.fromEntries(
                         Object.entries(headers).flatMap(([key, value]) => {
                             if (value === undefined) return [];
                             return [[key, Array.isArray(value) ? value.join(", ") : value]];
@@ -213,7 +213,7 @@ export default class Noctis {
                         })
                     ),
                     "method": method.toLowerCase(),
-                    "headers": responseHeaders => {
+                    "setHeaders": responseHeaders => {
                         for (const [name, value] of Object.entries(responseHeaders)) {
                             res.setHeader(name, value);
                         }

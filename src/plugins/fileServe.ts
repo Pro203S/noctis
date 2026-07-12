@@ -12,7 +12,7 @@ import type { NoctisRouteHandlerCallback } from "../types";
 const fileServe = (dir: string): NoctisRouteHandlerCallback => {
     const root = path.resolve(dir);
 
-    return async ({ headers, pathParams }) => {
+    return async ({ setHeaders, pathParams }) => {
         const requestedPath = pathParams["*"] ?? Object.values(pathParams).at(-1) ?? "";
         if (requestedPath.includes("\0")) throw new NoctisError(400);
 
@@ -38,7 +38,7 @@ const fileServe = (dir: string): NoctisRouteHandlerCallback => {
             }
             if (!stat.isFile()) throw new NoctisError(404);
 
-            headers({
+            setHeaders({
                 "Content-Length": String(stat.size),
                 "Content-Type": getMimeType(filePath)
             });

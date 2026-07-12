@@ -78,7 +78,7 @@ export type NoctisRouteParameters = {
     "pathParams": Record<string, string>;
 
     /** Headers received with the request. */
-    "requestHeaders": Headers,
+    "headers": Headers,
     /** The client's IP address. */
     "ip": string,
     /** The request URL. */
@@ -89,7 +89,7 @@ export type NoctisRouteParameters = {
     "method": string | "get" | "post" | "put" | "delete" | "patch",
 
     /** Sets HTTP response headers. */
-    "headers": (headers: Headers) => any;
+    "setHeaders": (headers: Headers) => any;
 };
 
 export type NoctisRouteHandler = (route: string, handler: (params: NoctisRouteParameters) => any) => any;
