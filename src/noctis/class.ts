@@ -1,3 +1,6 @@
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { detectBufferMimeType } from "../lib/mime";
 import NoctisError from "../lib/noctisError";
 import usNow from "../lib/us";
 import type { HTTPServer, ServerHandler } from "../server/creator";
@@ -17,13 +20,34 @@ type MatchedHandler = HandlerInfo & {
 const matchRoute = (route: string, pathname: string): Record<string, string> | null => {
     const routeSegments = route.split("/").filter(Boolean);
     const pathSegments = pathname.split("/").filter(Boolean);
-    if (routeSegments.length !== pathSegments.length) return null;
+    const wildcardIndex = routeSegments.findIndex(segment => segment.startsWith("*"));
+
+    if (wildcardIndex !== -1) {
+        if (wildcardIndex !== routeSegments.length - 1 || pathSegments.length < wildcardIndex) return null;
+    } else if (routeSegments.length !== pathSegments.length) {
+        return null;
+    }
 
     const pathParams: Record<string, string> = {};
 
     for (let index = 0; index < routeSegments.length; index++) {
         const routeSegment = routeSegments[index]!;
-        const pathSegment = pathSegments[index]!;
+
+        if (routeSegment.startsWith("*")) {
+            const name = routeSegment.slice(1) || "*";
+
+            try {
+                pathParams[name] = pathSegments.slice(index)
+                    .map(segment => decodeURIComponent(segment))
+                    .join("/");
+            } catch {
+                throw new NoctisError(400);
+            }
+            return pathParams;
+        }
+
+        const pathSegment = pathSegments[index];
+        if (pathSegment === undefined) return null;
 
         if (routeSegment.startsWith(":")) {
             const name = routeSegment.slice(1);
@@ -44,6 +68,8 @@ const matchRoute = (route: string, pathname: string): Record<string, string> | n
 };
 
 const getContentType = (response: any) => {
+    if (Buffer.isBuffer(response)) return detectBufferMimeType(response);
+
     let type = "text/plain";
 
     switch (typeof response) {
@@ -80,6 +106,12 @@ const getResponseBody = (response: any, contentType: string) => {
     return String(response);
 };
 
+function* bufferChunks(buffer: Buffer, chunkSize = 64 * 1024) {
+    for (let offset = 0; offset < buffer.length; offset += chunkSize) {
+        yield buffer.subarray(offset, offset + chunkSize);
+    }
+}
+
 export default class Noctis {
     private _server!: HTTPServer;
     private _handlers: HandlerInfo[] = [];
@@ -101,8 +133,8 @@ export default class Noctis {
                 const requestUrl = new URL(url, `${config.https ? "https" : "http"}://${headers.host ?? "localhost"}`);
                 const methodHandlers = this._handlers.filter(v => v.method === "any" || v.method.toLowerCase() === method.toLowerCase());
                 const orderedHandlers = [
-                    ...methodHandlers.filter(v => !v.path.split("/").some(segment => segment.startsWith(":"))),
-                    ...methodHandlers.filter(v => v.path.split("/").some(segment => segment.startsWith(":")))
+                    ...methodHandlers.filter(v => !v.path.split("/").some(segment => segment.startsWith(":") || segment.startsWith("*"))),
+                    ...methodHandlers.filter(v => v.path.split("/").some(segment => segment.startsWith(":") || segment.startsWith("*")))
                 ];
 
                 let found: MatchedHandler | undefined;
@@ -181,7 +213,6 @@ export default class Noctis {
                         })
                     ),
                     "method": method.toLowerCase(),
-                    "status": status => res.statusCode = status,
                     "headers": responseHeaders => {
                         for (const [name, value] of Object.entries(responseHeaders)) {
                             res.setHeader(name, value);
@@ -197,6 +228,15 @@ export default class Noctis {
 
                 const type = getContentType(response);
                 if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", type);
+
+                if (Buffer.isBuffer(response)) {
+                    if (!res.hasHeader("Content-Length")) {
+                        res.setHeader("Content-Length", String(response.length));
+                    }
+                    await pipeline(Readable.from(bufferChunks(response)), res);
+                    config.routeHandled?.({ "route": url, "status": res.statusCode, "time": usNow() - now });
+                    return;
+                }
 
                 config.routeHandled?.({ "route": url, "status": res.statusCode, "time": usNow() - now });
                 return res.end(getResponseBody(response, type));

@@ -88,8 +88,6 @@ export type NoctisRouteParameters = {
     /** The request method in lower case. */
     "method": string | "get" | "post" | "put" | "delete" | "patch",
 
-    /** Sets the HTTP response status code. */
-    "status": (status: number) => any;
     /** Sets HTTP response headers. */
     "headers": (headers: Headers) => any;
 };

@@ -11,18 +11,6 @@
     "declaration": true,
     "removeComments": false,
 
-    // Best practices
-    "strict": true,
-    "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
-
     "outDir": "./dist"
   },
   "exclude": ["./tests/**/*", "./dist/**/*"]

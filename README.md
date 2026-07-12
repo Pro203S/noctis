@@ -2,7 +2,7 @@
 
 사용 예시:
 ```typescript
-import Noctis, { NoctisError, static, next } from 'noctis';
+import Noctis, { NoctisError, fileServe } from 'noctis';
 
 const server = new Noctis({
     "port": 3000
@@ -16,7 +16,7 @@ server.middleware([
     next();
 });
 
-server.get("/", static("/public"));
+server.get("/public/*", fileServe("/public"));
 server.get("/not_found", () => {
     throw new NoctisError(404, { "message": "File Not Found" });
 });

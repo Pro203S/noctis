@@ -43,6 +43,14 @@ const ERROR_CODE_MAP: Readonly<Record<number, string>> = {
 };
 
 export default class NoctisError extends Error {
+    /**
+     * NoctisError 인스턴스를 만듭니다.
+     *
+     * Noctis에서 404, 500 등을 반환할 때 쓰입니다.
+     *
+     * @param statusCode 반환할 오류코드입니다.
+     * @param body 응답할 데이터입니다.
+     */
     constructor(
         public statusCode: number,
         public body?: any
