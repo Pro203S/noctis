@@ -90,7 +90,26 @@ export type NoctisRouteParameters = {
 
     /** Sets HTTP response headers. */
     "setHeaders": (headers: Headers) => any;
+    /** Response redirect url with 307 status. */
+    "redirect": (url: string) => any;
 };
 
 export type NoctisRouteHandler = (route: string, handler: (params: NoctisRouteParameters) => any) => any;
 export type NoctisRouteHandlerCallback = (params: NoctisRouteParameters) => any;
+export type NoctisMiddlewareCallback = (params: NoctisRouteParameters & { "next": () => any }) => any;
+
+export type RouteToken = readonly [type: 0 | 1 | 2, value: string];
+
+export type HandlerInfo = {
+    "cb": NoctisRouteHandlerCallback,
+    "method": string,
+    "path": string,
+    "tokens": readonly RouteToken[],
+    "wildcard": boolean,
+    "valid": boolean
+};
+
+export type MatchedHandler = {
+    "handler": HandlerInfo,
+    "pathParams": Record<string, string>
+};
