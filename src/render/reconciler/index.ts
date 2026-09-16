@@ -5,7 +5,8 @@ import {
     NoEventPriority,
 } from "react-reconciler/constants.js";
 import { createHostInstance } from "./components/index.js";
-import type { NoctisView } from "./components/view.js";
+import type { NoctisText } from "./components/Text.js";
+import type { NoctisView } from "./components/View.js";
 
 export type HostProps = Readonly<Record<string, unknown>>;
 
@@ -14,13 +15,15 @@ export type HostComponent = Readonly<{
     render(props: HostProps, children: string): string;
 }>;
 
-export type NoctisText = {
+export type NoctisTextInstance = {
     readonly kind: "text";
     text: string;
     hidden: boolean;
 };
 
-export type NoctisChild = NoctisView | NoctisText;
+export type NoctisHostInstance = NoctisView | NoctisText;
+
+export type NoctisChild = NoctisHostInstance | NoctisTextInstance;
 
 export type NoctisContainer = {
     readonly children: NoctisChild[];
@@ -30,20 +33,20 @@ export type NoctisContainer = {
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 type HostConfig = Reconciler.HostConfig<
-    string,
-    HostProps,
-    NoctisContainer,
-    NoctisView,
-    NoctisText,
-    never,
-    never,
-    never,
-    NoctisChild,
-    null,
-    never,
-    TimeoutHandle,
-    -1,
-    null
+    /* Type                */  string,
+    /* Props               */  HostProps,
+    /* Container           */  NoctisContainer,
+    /* Instance            */  NoctisHostInstance,
+    /* TextInstance        */  NoctisTextInstance,
+    /* SuspenseInstance    */  never,
+    /* HydratableInstance  */  never,
+    /* FormInstance        */  never,
+    /* PublicInstance      */  NoctisChild,
+    /* HostContext         */  null,
+    /* ChildSet            */  never,
+    /* TimeoutHandle       */  TimeoutHandle,
+    /* NoTimeout           */  -1,
+    /* TransitionStatus    */  null
 >;
 
 let currentUpdatePriority: Reconciler.EventPriority = NoEventPriority;
@@ -242,21 +245,21 @@ const hostConfig: HostConfig = {
         return false;
     },
 
-    preparePortalMount() {},
+    preparePortalMount() { },
 
     getInstanceFromNode() {
         return null;
     },
 
-    beforeActiveInstanceBlur() {},
-    afterActiveInstanceBlur() {},
-    prepareScopeUpdate() {},
+    beforeActiveInstanceBlur() { },
+    afterActiveInstanceBlur() { },
+    prepareScopeUpdate() { },
 
     getInstanceFromScope() {
         return null;
     },
 
-    detachDeletedInstance() {},
+    detachDeletedInstance() { },
 
     scheduleTimeout(callback, delay) {
         return setTimeout(callback, delay);
@@ -294,8 +297,8 @@ const hostConfig: HostConfig = {
         return true;
     },
 
-    startSuspendingCommit() {},
-    suspendInstance() {},
+    startSuspendingCommit() { },
+    suspendInstance() { },
 
     waitForCommitToBeReady() {
         return null;
@@ -304,7 +307,7 @@ const hostConfig: HostConfig = {
     NotPendingTransition: null,
     HostTransitionContext: hostTransitionContext,
 
-    resetFormInstance() {},
+    resetFormInstance() { },
 
     requestPostPaintCallback(callback) {
         setTimeout(() => callback(Date.now()), 0);
@@ -314,7 +317,7 @@ const hostConfig: HostConfig = {
         return false;
     },
 
-    trackSchedulerEvent() {},
+    trackSchedulerEvent() { },
 
     resolveEventType() {
         return null;

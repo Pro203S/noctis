@@ -1,7 +1,16 @@
 import type { HostComponent, HostProps } from "../index.js";
-import view, { createView, type NoctisView } from "./view.js";
+import text, {
+    createText,
+    TEXT_TYPE,
+    type NoctisText,
+} from "./Text.js";
+import view, {
+    createView,
+    VIEW_TYPE,
+    type NoctisView,
+} from "./View.js";
 
-const definitions: readonly HostComponent[] = [view];
+const definitions: readonly HostComponent[] = [view, text];
 const components = new Map(
     definitions.map((definition) => [definition.type, definition] as const),
 );
@@ -19,7 +28,15 @@ export function resolveHostComponent(type: string): HostComponent {
 export function createHostInstance(
     type: string,
     props: HostProps,
-): NoctisView {
+): NoctisView | NoctisText {
     resolveHostComponent(type);
-    return createView(props);
+
+    switch (type) {
+        case VIEW_TYPE:
+            return createView(props);
+        case TEXT_TYPE:
+            return createText(props);
+        default:
+            throw new Error(`Unsupported component type: ${type}`);
+    }
 }

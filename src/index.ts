@@ -5,9 +5,11 @@ export {
 };
 
 import View from "./components/View.js";
+import Text from "./components/Text.js";
 
 export {
-    View
+    View,
+    Text
 };
 
 import useConsoleSize from "./hooks/useConsoleSize.js";
