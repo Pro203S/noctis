@@ -1,17 +1,22 @@
-import { COMPONENT_NAME } from "../../../components/View.js";
 import type { ViewProps } from "../../../components/View.js";
-import { defineHostComponent } from "../types.js";
+import type { HostComponent, HostProps } from "../index.js";
 
-const view = defineHostComponent<ViewProps, null>({
-    type: COMPONENT_NAME,
+export const VIEW_TYPE = "noctis-view";
 
-    create(): null {
-        return null;
+function getViewProps(props: HostProps): Readonly<ViewProps> {
+    return props as Readonly<ViewProps>;
+}
+
+function renderView(_props: Readonly<ViewProps>, children: string): string {
+    return children;
+}
+
+const view: HostComponent = {
+    type: VIEW_TYPE,
+
+    render(props, children) {
+        return renderView(getViewProps(props), children);
     },
-
-    serialize(_instance, children): string {
-        return children;
-    },
-});
+};
 
 export default view;

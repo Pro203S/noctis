@@ -1,70 +1,350 @@
-import type { ReactNode } from "react";
-import ReactReconciler from "react-reconciler";
-import { ConcurrentRoot } from "react-reconciler/constants.js";
-import hostConfig from "./hostConfig.js";
-import type {
-    HostInstance,
-    HostProps,
-    PublicInstance,
-    RootContainer,
-    TextInstance,
-    TimeoutHandle,
-} from "./types.js";
+import { createContext } from "react";
+import Reconciler from "react-reconciler";
+import {
+    DefaultEventPriority,
+    NoEventPriority,
+} from "react-reconciler/constants.js";
+import { resolveHostComponent } from "./components/index.js";
 
-const reconciler = ReactReconciler<
+export type HostProps = Readonly<Record<string, unknown>>;
+
+export type HostComponent = Readonly<{
+    type: string;
+    render(props: HostProps, children: string): string;
+}>;
+
+export type NoctisNode = {
+    readonly kind: "component";
+    readonly type: string;
+    readonly component: HostComponent;
+    props: HostProps;
+    readonly children: NoctisChild[];
+    hidden: boolean;
+};
+
+export type NoctisText = {
+    readonly kind: "text";
+    text: string;
+    hidden: boolean;
+};
+
+export type NoctisChild = NoctisNode | NoctisText;
+
+export type NoctisContainer = {
+    readonly children: NoctisChild[];
+    renderedText: string;
+};
+
+type TimeoutHandle = ReturnType<typeof setTimeout>;
+
+type HostConfig = Reconciler.HostConfig<
     string,
     HostProps,
-    RootContainer,
-    HostInstance,
-    TextInstance,
+    NoctisContainer,
+    NoctisNode,
+    NoctisText,
     never,
     never,
     never,
-    PublicInstance,
+    NoctisChild,
     null,
     never,
     TimeoutHandle,
     -1,
     null
->(hostConfig);
+>;
 
-function reportCaughtError(error: Error): void {
-    console.error(error);
+let currentUpdatePriority: Reconciler.EventPriority = NoEventPriority;
+
+const hostTransitionContext = createContext<null>(null) as unknown as
+    Reconciler.ReactContext<null>;
+
+function append(children: NoctisChild[], child: NoctisChild): void {
+    remove(children, child);
+    children.push(child);
 }
 
-function reportRecoverableError(error: Error): void {
-    console.error(error);
+function remove(children: NoctisChild[], child: NoctisChild): void {
+    const index = children.indexOf(child);
+
+    if (index !== -1) {
+        children.splice(index, 1);
+    }
 }
 
-export type ReconcilerRoot = ReturnType<typeof reconciler.createContainer>;
+function insert(
+    children: NoctisChild[],
+    child: NoctisChild,
+    beforeChild: NoctisChild,
+): void {
+    if (child === beforeChild) {
+        return;
+    }
 
-export function createRoot(container: RootContainer): ReconcilerRoot {
-    return reconciler.createContainer(
-        container,
-        ConcurrentRoot,
-        null,
-        false,
-        null,
-        "",
-        (error) => {
-            if (container.isRendering) {
-                container.renderError = error;
-                return;
-            }
+    remove(children, child);
 
-            queueMicrotask(() => {
-                throw error;
-            });
-        },
-        reportCaughtError,
-        reportRecoverableError,
-        () => {},
-    );
+    const index = children.indexOf(beforeChild);
+
+    if (index === -1) {
+        throw new Error("Cannot insert host child: target sibling was not found.");
+    }
+
+    children.splice(index, 0, child);
 }
 
-export function updateRoot(root: ReconcilerRoot, node: ReactNode): void {
-    reconciler.updateContainerSync(node, root, null);
-    reconciler.flushSyncWork();
+function renderChild(child: NoctisChild): string {
+    if (child.hidden) {
+        return "";
+    }
+
+    if (child.kind === "text") {
+        return child.text;
+    }
+
+    const children = child.children.map(renderChild).join("");
+    return child.component.render(child.props, children);
 }
 
-export type { RootContainer } from "./types.js";
+function renderContainer(container: NoctisContainer): string {
+    return container.children.map(renderChild).join("");
+}
+
+function redraw(container: NoctisContainer): void {
+    const nextText = renderContainer(container);
+
+    if (nextText === container.renderedText) {
+        return;
+    }
+
+    if (process.stdout.isTTY !== true) {
+        if (nextText.length > 0) {
+            process.stdout.write(nextText);
+        }
+
+        container.renderedText = nextText;
+        return;
+    }
+
+    if (container.renderedText.length > 0) {
+        const lineCount = container.renderedText.split("\n").length;
+        const moveToStart = lineCount > 1
+            ? `\r\u001B[${lineCount - 1}A`
+            : "\r";
+
+        process.stdout.write(`${moveToStart}\u001B[0J`);
+    }
+
+    if (nextText.length > 0) {
+        process.stdout.write(nextText);
+    }
+
+    container.renderedText = nextText;
+}
+
+const hostConfig: HostConfig = {
+    supportsMutation: true,
+    supportsPersistence: false,
+    supportsHydration: false,
+    supportsMicrotasks: true,
+    isPrimaryRenderer: true,
+    warnsIfNotActing: false,
+
+    createInstance(type, props) {
+        return {
+            kind: "component",
+            type,
+            component: resolveHostComponent(type),
+            props,
+            children: [],
+            hidden: false,
+        };
+    },
+
+    createTextInstance(text) {
+        return {
+            kind: "text",
+            text,
+            hidden: false,
+        };
+    },
+
+    appendInitialChild(parent, child) {
+        append(parent.children, child);
+    },
+
+    appendChild(parent, child) {
+        append(parent.children, child);
+    },
+
+    appendChildToContainer(container, child) {
+        append(container.children, child);
+    },
+
+    removeChild(parent, child) {
+        remove(parent.children, child);
+    },
+
+    removeChildFromContainer(container, child) {
+        remove(container.children, child);
+    },
+
+    insertBefore(parent, child, beforeChild) {
+        insert(parent.children, child, beforeChild);
+    },
+
+    insertInContainerBefore(container, child, beforeChild) {
+        insert(container.children, child, beforeChild);
+    },
+
+    commitUpdate(instance, _type, _oldProps, newProps) {
+        instance.props = newProps;
+    },
+
+    commitTextUpdate(instance, _oldText, newText) {
+        instance.text = newText;
+    },
+
+    resetTextContent(instance) {
+        instance.children.length = 0;
+    },
+
+    clearContainer(container) {
+        container.children.length = 0;
+    },
+
+    hideInstance(instance) {
+        instance.hidden = true;
+    },
+
+    hideTextInstance(instance) {
+        instance.hidden = true;
+    },
+
+    unhideInstance(instance) {
+        instance.hidden = false;
+    },
+
+    unhideTextInstance(instance, text) {
+        instance.hidden = false;
+        instance.text = text;
+    },
+
+    getRootHostContext() {
+        return null;
+    },
+
+    getChildHostContext() {
+        return null;
+    },
+
+    getPublicInstance(instance) {
+        return instance;
+    },
+
+    prepareForCommit() {
+        return null;
+    },
+
+    resetAfterCommit(container) {
+        redraw(container);
+    },
+
+    finalizeInitialChildren() {
+        return false;
+    },
+
+    shouldSetTextContent() {
+        return false;
+    },
+
+    preparePortalMount() {},
+
+    getInstanceFromNode() {
+        return null;
+    },
+
+    beforeActiveInstanceBlur() {},
+    afterActiveInstanceBlur() {},
+    prepareScopeUpdate() {},
+
+    getInstanceFromScope() {
+        return null;
+    },
+
+    detachDeletedInstance() {},
+
+    scheduleTimeout(callback, delay) {
+        return setTimeout(callback, delay);
+    },
+
+    cancelTimeout(handle) {
+        clearTimeout(handle);
+    },
+
+    noTimeout: -1,
+
+    scheduleMicrotask(callback) {
+        queueMicrotask(callback);
+    },
+
+    getCurrentUpdatePriority() {
+        return currentUpdatePriority;
+    },
+
+    setCurrentUpdatePriority(priority) {
+        currentUpdatePriority = priority;
+    },
+
+    resolveUpdatePriority() {
+        return currentUpdatePriority === NoEventPriority
+            ? DefaultEventPriority
+            : currentUpdatePriority;
+    },
+
+    maySuspendCommit() {
+        return false;
+    },
+
+    preloadInstance() {
+        return true;
+    },
+
+    startSuspendingCommit() {},
+    suspendInstance() {},
+
+    waitForCommitToBeReady() {
+        return null;
+    },
+
+    NotPendingTransition: null,
+    HostTransitionContext: hostTransitionContext,
+
+    resetFormInstance() {},
+
+    requestPostPaintCallback(callback) {
+        setTimeout(() => callback(Date.now()), 0);
+    },
+
+    shouldAttemptEagerTransition() {
+        return false;
+    },
+
+    trackSchedulerEvent() {},
+
+    resolveEventType() {
+        return null;
+    },
+
+    resolveEventTimeStamp() {
+        return -1;
+    },
+};
+
+export function createContainer(): NoctisContainer {
+    return {
+        children: [],
+        renderedText: "",
+    };
+}
+
+export const reconciler = Reconciler(hostConfig);
