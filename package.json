@@ -2,7 +2,6 @@
   "name": "noctis",
   "module": "index.ts",
   "type": "module",
-  "private": true,
   "version": "0.0.0",
   "description": "Terminal User Interfaces with React",
   "main": "./dist/index.js",
