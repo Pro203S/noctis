@@ -1,0 +1,43 @@
+{
+  "name": "noctis",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Terminal User Interfaces with React",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "author": "Pro203S",
+  "license": "MIT",
+  "scripts": {
+    "pack": "npm run clean && npm run build",
+    "build": "tsc",
+    "clean": "tsc --build --clean",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "watch": "tsc --watch",
+    "test": "npm run pack && node \"test.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pro203S/noctis.git"
+  },
+  "keywords": [
+    "terminal",
+    "react",
+    "ui",
+    "render"
+  ],
+  "homepage": "https://github.com/Pro203S/noctis.git",
+  "bugs": {
+    "url": "https://github.com/Pro203S/noctis/issues"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "@types/node": "^22.20.3"
+  }
+}
