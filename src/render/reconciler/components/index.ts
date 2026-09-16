@@ -1,5 +1,5 @@
-import type { HostComponent } from "../index.js";
-import view from "./view.js";
+import type { HostComponent, HostProps } from "../index.js";
+import view, { createView, type NoctisView } from "./view.js";
 
 const definitions: readonly HostComponent[] = [view];
 const components = new Map(
@@ -14,4 +14,12 @@ export function resolveHostComponent(type: string): HostComponent {
     }
 
     return component;
+}
+
+export function createHostInstance(
+    type: string,
+    props: HostProps,
+): NoctisView {
+    resolveHostComponent(type);
+    return createView(props);
 }

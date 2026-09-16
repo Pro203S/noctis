@@ -8,7 +8,9 @@ function Component() {
         console.log(width, height)
     }, [width, height])
 
-    return <View></View>;
+    return <View style={{ "backgroundColor": `#da1311` }}>
+
+    </View>;
 }
 
 console.log(<Component />);

@@ -4,7 +4,8 @@ import {
     DefaultEventPriority,
     NoEventPriority,
 } from "react-reconciler/constants.js";
-import { resolveHostComponent } from "./components/index.js";
+import { createHostInstance } from "./components/index.js";
+import type { NoctisView } from "./components/view.js";
 
 export type HostProps = Readonly<Record<string, unknown>>;
 
@@ -13,22 +14,13 @@ export type HostComponent = Readonly<{
     render(props: HostProps, children: string): string;
 }>;
 
-export type NoctisNode = {
-    readonly kind: "component";
-    readonly type: string;
-    readonly component: HostComponent;
-    props: HostProps;
-    readonly children: NoctisChild[];
-    hidden: boolean;
-};
-
 export type NoctisText = {
     readonly kind: "text";
     text: string;
     hidden: boolean;
 };
 
-export type NoctisChild = NoctisNode | NoctisText;
+export type NoctisChild = NoctisView | NoctisText;
 
 export type NoctisContainer = {
     readonly children: NoctisChild[];
@@ -41,7 +33,7 @@ type HostConfig = Reconciler.HostConfig<
     string,
     HostProps,
     NoctisContainer,
-    NoctisNode,
+    NoctisView,
     NoctisText,
     never,
     never,
@@ -150,14 +142,7 @@ const hostConfig: HostConfig = {
     warnsIfNotActing: false,
 
     createInstance(type, props) {
-        return {
-            kind: "component",
-            type,
-            component: resolveHostComponent(type),
-            props,
-            children: [],
-            hidden: false,
-        };
+        return createHostInstance(type, props);
     },
 
     createTextInstance(text) {

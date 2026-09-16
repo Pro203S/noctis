@@ -5,7 +5,7 @@ import { VIEW_TYPE } from "../render/reconciler/components/view.js";
 export const COMPONENT_NAME = VIEW_TYPE;
 
 export type ViewProps = {
-    styles?: ViewStyle;
+    style?: ViewStyle;
     children?: ReactNode;
 };
 
