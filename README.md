@@ -1,4 +1,4 @@
 # noctis
 
-Terminal User Interfaces with React
+Terminal User Interfaces
 

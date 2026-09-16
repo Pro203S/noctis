@@ -1,13 +1,27 @@
 {
   "compilerOptions": {
-    // Environment setup & latest features
-    "lib": ["ESNext"],
-    "target": "ESNext",
-    "module": "Preserve",
-    "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
-    "types": ["node"],
-    "outDir": "./dist"
-  }
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "target": "ES6",
+    "lib": [
+      "ES6",
+      "DOM"
+    ],
+    "moduleResolution": "node16",
+    "module": "node16",
+    "esModuleInterop": true,
+    "declaration": true,
+    "strict": true,
+    "sourceMap": true,
+    "types": [
+      "node"
+    ],
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
+  },
+  "exclude": [
+    "./dist/*/**",
+    "./tests/*/**"
+  ]
 }
