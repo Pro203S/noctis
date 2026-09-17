@@ -5,22 +5,26 @@ import {
     reconciler,
     type NoctisContainer,
 } from "./reconciler/index.js";
+import CliManager from "../modules/cliMgr.js";
 
 type ReconcilerRoot = ReturnType<typeof reconciler.createContainer>;
 
 let hasActiveTerminalRenderer = false;
 
 export default class Renderer {
+    readonly #cliManager: CliManager;
     readonly #container: NoctisContainer;
     readonly #root: ReconcilerRoot;
     readonly #ownsTerminal: boolean;
 
+    #hasRendered = false;
     #renderError: Error | null = null;
     #isRendering = false;
     #isUnmounted = false;
 
     constructor() {
-        this.#ownsTerminal = process.stdout.isTTY === true;
+        this.#cliManager = new CliManager();
+        this.#ownsTerminal = this.#cliManager.isTerminal;
 
         if (this.#ownsTerminal && hasActiveTerminalRenderer) {
             throw new Error("Only one terminal Renderer can be active at a time.");
@@ -28,16 +32,16 @@ export default class Renderer {
 
         this.#container = createContainer();
         this.#root = reconciler.createContainer(
-            this.#container,
-            ConcurrentRoot,
-            null,
-            false,
-            null,
-            "",
-            (error) => this.#handleUncaughtError(error),
-            (error) => console.error(error),
-            (error) => console.error(error),
-            () => { },
+            /*                      containerInfo */ this.#container,
+            /*                                tag */ ConcurrentRoot,
+            /*                 hydrationCallbacks */ null,
+            /*                       isStrictMode */ false,
+            /* concurrentUpdatesByDefaultOverride */ null,
+            /*                   identifierPrefix */ "",
+            /*                    onUncaughtError */ (error) => this.#handleUncaughtError(error),
+            /*                      onCaughtError */ (error) => console.error(error),
+            /*                 onRecoverableError */ (error) => console.error(error),
+            /*       onDefaultTransitionIndicator */ () => { },
         );
 
         if (this.#ownsTerminal) {
@@ -50,6 +54,8 @@ export default class Renderer {
             throw new Error("Cannot render using an unmounted Renderer.");
         }
 
+        this.#cliManager.initialize();
+        this.#hasRendered = true;
         this.#renderError = null;
         this.#isRendering = true;
 
@@ -73,12 +79,24 @@ export default class Renderer {
         }
 
         try {
-            this.render(null);
+            if (this.#hasRendered) {
+                this.#container.preserveOutput = true;
+
+                try {
+                    this.render(null);
+                } finally {
+                    this.#container.preserveOutput = false;
+                }
+            }
         } finally {
             this.#isUnmounted = true;
 
-            if (this.#ownsTerminal) {
-                hasActiveTerminalRenderer = false;
+            try {
+                this.#cliManager.restore();
+            } finally {
+                if (this.#ownsTerminal) {
+                    hasActiveTerminalRenderer = false;
+                }
             }
         }
     }

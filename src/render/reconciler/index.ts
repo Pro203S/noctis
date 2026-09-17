@@ -28,6 +28,7 @@ export type NoctisChild = NoctisHostInstance | NoctisTextInstance;
 export type NoctisContainer = {
     readonly children: NoctisChild[];
     renderedText: string;
+    preserveOutput: boolean;
 };
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
@@ -109,6 +110,10 @@ function renderContainer(container: NoctisContainer): string {
 }
 
 function redraw(container: NoctisContainer): void {
+    if (container.preserveOutput) {
+        return;
+    }
+
     let nextText = renderContainer(container);
 
     // Keep terminal output on a complete line and track the newline for redraws.
@@ -345,6 +350,7 @@ export function createContainer(): NoctisContainer {
     return {
         children: [],
         renderedText: "",
+        preserveOutput: false,
     };
 }
 

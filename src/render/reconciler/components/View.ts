@@ -28,8 +28,19 @@ export function createView(props: HostProps): NoctisView {
 const view: HostComponent<Readonly<ViewProps>> = {
     type: COMPONENT_NAME,
 
-    render(_props, children) {
-        return children;
+    render(props, children) {
+        const height = props.style?.height;
+
+        if (height === undefined) {
+            return children;
+        }
+
+        const lines = children === "" ? [] : children.split("\n");
+
+        return Array.from(
+            { length: height },
+            (_, index) => lines[index] ?? "",
+        ).join("\n");
     },
 };
 

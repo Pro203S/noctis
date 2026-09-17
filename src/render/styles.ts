@@ -17,9 +17,14 @@ type ConsoleColor =
     | "brightWhite"
     | `#${string}`;
 
+export function isHexColor(value: string): value is ConsoleColor {
+    return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value);
+}
+
 type GradientColor = {
     "start": ConsoleColor,
-    "end": ConsoleColor
+    "end": ConsoleColor,
+    "rotation": number
 };
 
 export type ViewStyle = Partial<{

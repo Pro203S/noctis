@@ -1,8 +1,10 @@
-import { Text, View } from "noctis";
+import { Text, useConsoleSize, View } from "noctis";
 
 export default function App() {
+    const { height } = useConsoleSize();
+
     return (
-        <View>
+        <View style={{ height }}>
             <Text>Hello from Noctis!</Text>
         </View>
     );
