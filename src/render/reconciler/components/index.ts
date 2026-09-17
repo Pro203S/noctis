@@ -10,12 +10,14 @@ import view, {
 } from "./View.js";
 import { COMPONENT_NAME as VIEW_COMPONENT_NAME } from "../../../components/View.js";
 
-const definitions: readonly HostComponent[] = [view, text];
+type HostDefinition = Readonly<{ type: string }>;
+
+const definitions: readonly HostDefinition[] = [view, text];
 const components = new Map(
     definitions.map((definition) => [definition.type, definition] as const),
 );
 
-export function resolveHostComponent(type: string): HostComponent {
+export function resolveHostComponent(type: string): HostDefinition {
     const component = components.get(type);
 
     if (component === undefined) {

@@ -11,6 +11,7 @@ import type { NoctisText } from "../../.cache/reconciler-types/render/reconciler
 import type viewComponent from "../../.cache/reconciler-types/render/reconciler/components/View.js";
 import type { NoctisView } from "../../.cache/reconciler-types/render/reconciler/components/View.js";
 import type { ViewStyle } from "../../.cache/reconciler-types/render/styles.js";
+import type { LayoutResult } from "../../.cache/reconciler-types/render/layout/types.js";
 
 type Equal<Left, Right> =
     (<Value>() => Value extends Left ? 1 : 2) extends
@@ -55,6 +56,10 @@ type ViewRenderUsesViewProps = Assert<
     >
 >;
 
+type ViewRenderReturnsLayout = Assert<
+    Equal<ReturnType<typeof viewComponent.render>, LayoutResult>
+>;
+
 type TextUsesTextProps = Assert<
     Equal<NoctisText["props"], Readonly<TextProps>>
 >;
@@ -96,6 +101,7 @@ export type ReconcilerTypeContract =
     | ViewUsesViewProps
     | ViewIsAChild
     | ViewRenderUsesViewProps
+    | ViewRenderReturnsLayout
     | TextUsesTextProps
     | TextIsAChild
     | TextRenderUsesTextProps

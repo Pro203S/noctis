@@ -1,4 +1,10 @@
 import { COMPONENT_NAME, type ViewProps } from "../../../components/View.js";
+import { layoutView } from "../../layout/view.js";
+import type {
+    LayoutChild,
+    LayoutConstraints,
+    LayoutResult,
+} from "../../layout/types.js";
 import type {
     HostComponent,
     HostProps,
@@ -8,7 +14,12 @@ import type {
 export type NoctisView = {
     readonly kind: "component";
     readonly type: typeof COMPONENT_NAME;
-    readonly component: HostComponent<Readonly<ViewProps>>;
+    readonly component: HostComponent<
+        Readonly<ViewProps>,
+        readonly LayoutChild[],
+        LayoutResult,
+        LayoutConstraints
+    >;
     props: Readonly<ViewProps>;
     readonly children: NoctisChild[];
     hidden: boolean;
@@ -25,22 +36,22 @@ export function createView(props: HostProps): NoctisView {
     };
 }
 
-const view: HostComponent<Readonly<ViewProps>> = {
+const view: HostComponent<
+    Readonly<ViewProps>,
+    readonly LayoutChild[],
+    LayoutResult,
+    LayoutConstraints
+> = {
     type: COMPONENT_NAME,
 
-    render(props, children) {
-        const height = props.style?.height;
-
-        if (height === undefined) {
-            return children;
-        }
-
-        const lines = children === "" ? [] : children.split("\n");
-
-        return Array.from(
-            { length: height },
-            (_, index) => lines[index] ?? "",
-        ).join("\n");
+    render(props, children, constraints) {
+        return layoutView(
+            {
+                style: props.style ?? {},
+                children,
+            },
+            constraints,
+        );
     },
 };
 

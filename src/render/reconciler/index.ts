@@ -5,14 +5,20 @@ import {
     NoEventPriority,
 } from "react-reconciler/constants.js";
 import { createHostInstance } from "./components/index.js";
+import { renderLayoutChildren } from "../layout/index.js";
 import type { NoctisText } from "./components/Text.js";
 import type { NoctisView } from "./components/View.js";
 
 export type HostProps = Readonly<Record<string, unknown>>;
 
-export type HostComponent<Props extends HostProps = HostProps> = Readonly<{
+export type HostComponent<
+    Props extends HostProps = HostProps,
+    Children = string,
+    Output = string,
+    Constraints = undefined,
+> = Readonly<{
     type: string;
-    render(props: Props, children: string): string;
+    render(props: Props, children: Children, constraints?: Constraints): Output;
 }>;
 
 export type NoctisTextInstance = {
@@ -92,29 +98,12 @@ function insert(
     children.splice(index, 0, child);
 }
 
-function renderChild(child: NoctisChild): string {
-    if (child.hidden) {
-        return "";
-    }
-
-    if (child.kind === "text") {
-        return child.text;
-    }
-
-    const children = child.children.map(renderChild).join("");
-    return child.component.render(child.props, children);
-}
-
-function renderContainer(container: NoctisContainer): string {
-    return container.children.map(renderChild).join("");
-}
-
 function redraw(container: NoctisContainer): void {
     if (container.preserveOutput) {
         return;
     }
 
-    let nextText = renderContainer(container);
+    let nextText = renderLayoutChildren(container.children);
 
     // Keep terminal output on a complete line and track the newline for redraws.
     if (

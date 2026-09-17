@@ -79,3 +79,24 @@ test("initializes once and leaves the final frame visible on unmount", () => {
     assert.equal(output.includes("\u001B[?1049h"), false);
     assert.equal(output.includes("\u001B[?1049l"), false);
 });
+
+test("renders nested Views through the two-dimensional layout", () => {
+    const output = captureTtyOutput(() => {
+        const renderer = new Renderer();
+        renderer.render(createElement(
+            "noctis-view",
+            {
+                style: {
+                    display: "flex",
+                    width: 5,
+                    justifyContent: "space-between",
+                },
+            },
+            createElement("noctis-text", null, "A"),
+            createElement("noctis-text", null, "B"),
+        ));
+        renderer.unmount();
+    });
+
+    assert.ok(output.endsWith(`A   B\n${RESTORE_TERMINAL}`));
+});
