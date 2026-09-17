@@ -8,9 +8,5 @@
   },
   "peerDependencies": {
     "typescript": "^7"
-  },
-  "dependencies": {
-    "@types/node": "^22.20.3",
-    "noctis": ".."
   }
 }

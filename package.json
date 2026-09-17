@@ -1,53 +1,59 @@
 {
-  "name": "noctis",
-  "module": "index.ts",
-  "type": "module",
-  "version": "0.0.0",
-  "description": "Terminal User Interfaces",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "author": "Pro203S",
-  "license": "MIT",
-  "scripts": {
-    "pack": "npm run clean && npm run build",
-    "build": "tsc && tsc-alias",
-    "clean": "tsc --build --clean",
-    "dev": "tsx watch src/index.ts",
-    "watch": "tsc --watch",
-    "test:path-alias": "tsc -p test/path-alias/tsconfig.json && tsc-alias -p tsconfig.json --outDir .cache/path-alias && node .cache/path-alias/test/path-alias/entry.js",
-    "test:reconciler-runtime": "tsc --noCheck --rootDir src --outDir .cache/reconciler-runtime && tsc-alias --outDir .cache/reconciler-runtime && node --test test/runtime/cliMgr.test.mjs test/runtime/layout-text.test.mjs test/runtime/layout-view.test.mjs test/runtime/reconciler.test.mjs test/runtime/renderer.test.mjs",
-    "test:reconciler-types": "tsc --declaration --emitDeclarationOnly --noCheck --rootDir src --outDir .cache/reconciler-types && tsc-alias --outDir .cache/reconciler-types && tsc --ignoreConfig --noEmit --strict --target ES6 --module Node16 --moduleResolution Node16 --types node test/types/reconciler.test.ts",
-    "test": "npm run pack && node \"test.js\""
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Pro203S/noctis.git"
-  },
-  "keywords": [
-    "terminal",
-    "react",
-    "ui",
-    "render"
-  ],
-  "homepage": "https://github.com/Pro203S/noctis.git",
-  "bugs": {
-    "url": "https://github.com/Pro203S/noctis/issues"
-  },
-  "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-reconciler": "^0.33.0",
-    "tsc-alias": "^1.9.5",
-    "tsx": "^4.23.13"
-  },
-  "peerDependencies": {
-    "typescript": "^7"
-  },
-  "dependencies": {
-    "@types/node": "^22.20.3",
-    "ansi-regex": "^6.3.0",
-    "chalk": "^6.0.0",
-    "react": "^19.3.0",
-    "react-reconciler": "^0.34.0",
-    "string-width": "^8.2.2"
-  }
+    "name": "noctis",
+    "version": "0.0.0",
+    "description": "Terminal User Interfaces",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "author": "Pro203S",
+    "license": "MIT",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "pack": "npm run clean && npm run build",
+        "build": "tsc && tsc-alias",
+        "clean": "tsc --build --clean",
+        "dev": "tsx watch src/index.ts",
+        "watch": "tsc --watch",
+        "test:path-alias": "tsc -p test/path-alias/tsconfig.json && tsc-alias -p tsconfig.json --outDir .cache/path-alias && node .cache/path-alias/test/path-alias/entry.js",
+        "test:reconciler-runtime": "tsc --noCheck --rootDir src --outDir .cache/reconciler-runtime && tsc-alias --outDir .cache/reconciler-runtime && node --test test/runtime/cliMgr.test.mjs test/runtime/layout-text.test.mjs test/runtime/layout-view.test.mjs test/runtime/reconciler.test.mjs test/runtime/renderer.test.mjs",
+        "test:reconciler-types": "tsc --declaration --emitDeclarationOnly --noCheck --rootDir src --outDir .cache/reconciler-types && tsc-alias --outDir .cache/reconciler-types && tsc --ignoreConfig --noEmit --strict --target ES6 --module Node16 --moduleResolution Node16 --types node test/types/reconciler.test.ts",
+        "test": "npm run pack && node \"test.js\""
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Pro203S/noctis.git"
+    },
+    "keywords": [
+        "terminal",
+        "react",
+        "ui",
+        "render"
+    ],
+    "homepage": "https://github.com/Pro203S/noctis",
+    "bugs": {
+        "url": "https://github.com/Pro203S/noctis/issues"
+    },
+    "peerDependencies": {
+        "react": "^19.3.0"
+    },
+    "dependencies": {
+        "ansi-regex": "^6.3.0",
+        "chalk": "^6.0.0",
+        "react-reconciler": "^0.34.0",
+        "string-width": "^8.2.2"
+    },
+    "devDependencies": {
+        "@types/node": "^22.20.3",
+        "@types/react": "^19.3.0",
+        "@types/react-reconciler": "^0.33.0",
+        "react": "^19.3.0",
+        "tsc-alias": "^1.9.5",
+        "tsx": "^4.23.13",
+        "typescript": "^7"
+    }
 }

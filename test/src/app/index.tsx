@@ -6,7 +6,7 @@ export default function App() {
 
     return (
         <View style={{ "backgroundColor": "red" }}>
-            <Text>{width}, {height}, {stdIn}</Text>
+            <Text>{width}, {height}, {JSON.stringify(stdIn)}</Text>
         </View>
     );
 }

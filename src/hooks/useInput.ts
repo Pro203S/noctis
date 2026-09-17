@@ -1,21 +1,35 @@
 import { useEffect, useState } from "react";
+import { emitKeypressEvents, type Key } from "node:readline";
 
-type Parameters = {
-    "encoding": BufferEncoding;
-}
+emitKeypressEvents(process.stdin);
 
-export default function useInput(params?: Parameters) {
-    const { encoding } = params ?? { "encoding": "utf-8" };
-    const [lastInputed, setLastInputed] = useState("");
+type PressedKey = {
+    "name": string,
+    "shift": boolean,
+    "ctrl": boolean,
+    "alt": boolean,
+    "meta": boolean
+};
+
+export default function useInput() {
+    const [lastInputed, setLastInputed] = useState<PressedKey>();
 
     useEffect(() => {
-        const cb = (data: Buffer) => {
-            setLastInputed(data.toString(encoding));
-        }
+        const cb = (str: string | undefined, key: Key) => {
+            setLastInputed({
+                "name": key.name ?? str ?? "",
+                "shift": key.shift ?? false,
+                "ctrl": key.ctrl ?? false,
+                "alt": key.meta ?? false,
+                "meta": false,
+            });
+        };
 
-        process.stdin.on("data", cb);
+        process.stdin.on("keypress", cb);
 
-        return () => { process.stdin.off("data", cb); };
+        return () => {
+            process.stdin.off("keypress", cb);
+        };
     }, []);
 
     return lastInputed;
