@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
-import inputManager, { type MouseInput, } from "../modules/inputMgr.js";
 
-export default function useMouse(): MouseInput | undefined {
-    const [lastInputed, setLastInputed] = useState<MouseInput>();
+export default function useCursor() {
+    const [showCursor, setShowCursor] = useState(false);
+    const [x, setX] = useState(0);
+    const [y, setY] = useState(0);
 
     useEffect(() => {
-        inputManager.initialize();
+        process.stdout.write(`\x1b[${y};${x}H`);
+    }, [x, y]);
 
-        const cb = (mouse: MouseInput) => {
-            setLastInputed(mouse);
-        };
+    useEffect(() => {
+        if (showCursor)
+            process.stdout.write("\x1b[?25h");
+        else
+            process.stdout.write("\x1b[?25l");
+    }, [showCursor]);
 
-        inputManager.on("mouse", cb);
-
-        return () => {
-            inputManager.off("mouse", cb);
-        };
-    }, []);
-
-    return lastInputed;
+    return {
+        "show": setShowCursor,
+        "x": setX,
+        "y": setY
+    };
 }

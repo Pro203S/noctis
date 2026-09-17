@@ -21,7 +21,7 @@ export function resolveHostComponent(type: string): HostDefinition {
     const component = components.get(type);
 
     if (component === undefined) {
-        throw new Error(`Unsupported component type: ${type}`);
+        throw new Error(`"${type}" is not supported. Did you use an HTML element by mistake?`);
     }
 
     return component;
@@ -39,6 +39,6 @@ export function createHostInstance(
         case TEXT_COMPONENT_NAME:
             return createText(props);
         default:
-            throw new Error(`Unsupported component: ${type}`);
+            throw new Error(`"${type}" is not supported. Did you use an HTML element by mistake?`);
     }
 }
