@@ -13,7 +13,9 @@ export {
 };
 
 import useConsoleSize from "./hooks/useConsoleSize.js";
+import useInput from "./hooks/useInput.js";
 
 export {
-    useConsoleSize
+    useConsoleSize,
+    useInput
 };

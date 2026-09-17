@@ -1,11 +1,12 @@
-import { Text, useConsoleSize, View } from "noctis";
+import { Text, useConsoleSize, useInput, View } from "noctis";
 
 export default function App() {
-    const { height } = useConsoleSize();
+    const { width, height } = useConsoleSize();
+    const stdIn = useInput();
 
     return (
-        <View style={{ height }}>
-            <Text>Hello from Noctis!</Text>
+        <View style={{ "backgroundColor": "red" }}>
+            <Text>{width}, {height}, {stdIn}</Text>
         </View>
     );
 }
