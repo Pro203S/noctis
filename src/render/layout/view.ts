@@ -1,5 +1,5 @@
 import type { ViewStyle } from "../styles.js";
-import { createGrid, overlayGrid } from "./grid.js";
+import { createGrid, overlayGrid, placeGlyph } from "./grid.js";
 import {
     normalizeCellCount,
     resolvePosition,
@@ -30,6 +30,39 @@ type PaintRecord = {
     readonly flowY: number;
     readonly sourceIndex: number;
 };
+
+const BORDER_GLYPHS = {
+    solid: {
+        normal: {
+            top: "─", right: "│", bottom: "─", left: "│",
+            topLeft: "┌", topRight: "┐", bottomRight: "┘", bottomLeft: "└",
+        },
+        bold: {
+            top: "━", right: "┃", bottom: "━", left: "┃",
+            topLeft: "┏", topRight: "┓", bottomRight: "┛", bottomLeft: "┗",
+        },
+    },
+    dotted: {
+        normal: {
+            top: "┄", right: "┊", bottom: "┄", left: "┊",
+            topLeft: "┌", topRight: "┐", bottomRight: "┘", bottomLeft: "└",
+        },
+        bold: {
+            top: "┅", right: "┋", bottom: "┅", left: "┋",
+            topLeft: "┏", topRight: "┓", bottomRight: "┛", bottomLeft: "┗",
+        },
+    },
+    doubleline: {
+        normal: {
+            top: "═", right: "║", bottom: "═", left: "║",
+            topLeft: "╔", topRight: "╗", bottomRight: "╝", bottomLeft: "╚",
+        },
+        bold: {
+            top: "═", right: "║", bottom: "═", left: "║",
+            topLeft: "╔", topRight: "╗", bottomRight: "╝", bottomLeft: "╚",
+        },
+    },
+} as const;
 
 function resolveOwnDimension(
     explicit: number | undefined,
@@ -400,6 +433,45 @@ function addPadding(
     return grid;
 }
 
+function addBorder(
+    inner: ReturnType<typeof createGrid>,
+    style: Readonly<ViewStyle>,
+) {
+    const hasBorder = style.borderStyle !== undefined ||
+        style.borderWidth !== undefined ||
+        style.borderColor !== undefined;
+
+    if (!hasBorder) {
+        return inner;
+    }
+
+    const borderStyle = style.borderStyle ?? "solid";
+    const borderWidth = style.borderWidth ?? "normal";
+    const glyphs = BORDER_GLYPHS[borderStyle][borderWidth];
+    const grid = createGrid(inner.width + 2, inner.height + 2);
+    const right = grid.width - 1;
+    const bottom = grid.height - 1;
+
+    overlayGrid(grid, inner, 1, 1);
+
+    for (let x = 1; x < right; x += 1) {
+        placeGlyph(grid, x, 0, glyphs.top, 1);
+        placeGlyph(grid, x, bottom, glyphs.bottom, 1);
+    }
+
+    for (let y = 1; y < bottom; y += 1) {
+        placeGlyph(grid, 0, y, glyphs.left, 1);
+        placeGlyph(grid, right, y, glyphs.right, 1);
+    }
+
+    placeGlyph(grid, 0, 0, glyphs.topLeft, 1);
+    placeGlyph(grid, right, 0, glyphs.topRight, 1);
+    placeGlyph(grid, right, bottom, glyphs.bottomRight, 1);
+    placeGlyph(grid, 0, bottom, glyphs.bottomLeft, 1);
+
+    return grid;
+}
+
 export function layoutView(
     input: ViewLayoutInput,
     constraints: LayoutConstraints = {},
@@ -456,7 +528,7 @@ export function layoutView(
     const content = paintRecords(records, width, height);
 
     return {
-        grid: addPadding(content, style),
+        grid: addBorder(addPadding(content, style), style),
         margin: resolveSpacing(style, "margin"),
         position: resolvePosition(style),
         autoWidth: explicitWidth === undefined &&

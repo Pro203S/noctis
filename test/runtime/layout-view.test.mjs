@@ -244,3 +244,39 @@ test("uses source order when overlapping zIndex values are equal", () => {
 
     assert.equal(gridToPlainText(result.grid), "B");
 });
+
+test("adds a normal solid border outside the content box", () => {
+    const result = layoutView({
+        style: { width: 2, height: 1, borderStyle: "solid" },
+        children: [textChild("x")],
+    });
+
+    assert.deepEqual(
+        { width: result.grid.width, height: result.grid.height },
+        { width: 4, height: 3 },
+    );
+    assert.equal(gridToPlainText(result.grid), "┌──┐\n│x │\n└──┘");
+});
+
+test("uses heavy and double border glyph families", () => {
+    const heavy = layoutView({
+        style: { width: 1, height: 1, borderWidth: "bold" },
+        children: [],
+    });
+    const doubled = layoutView({
+        style: { width: 1, height: 1, borderStyle: "doubleline" },
+        children: [],
+    });
+
+    assert.equal(gridToPlainText(heavy.grid), "┏━┓\n┃ ┃\n┗━┛");
+    assert.equal(gridToPlainText(doubled.grid), "╔═╗\n║ ║\n╚═╝");
+});
+
+test("uses dotted edge glyphs", () => {
+    const result = layoutView({
+        style: { width: 1, height: 1, borderStyle: "dotted" },
+        children: [],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "┌┄┐\n┊ ┊\n└┄┘");
+});
