@@ -21,6 +21,7 @@ export default class Renderer {
     #renderError: Error | null = null;
     #isRendering = false;
     #isUnmounted = false;
+    #isStarted = false;
 
     constructor() {
         this.#cliManager = new CliManager();
@@ -31,6 +32,7 @@ export default class Renderer {
         }
 
         this.#container = createContainer();
+
         this.#root = reconciler.createContainer(
             /*                      containerInfo */ this.#container,
             /*                                tag */ ConcurrentRoot,
@@ -38,10 +40,10 @@ export default class Renderer {
             /*                       isStrictMode */ false,
             /* concurrentUpdatesByDefaultOverride */ null,
             /*                   identifierPrefix */ "",
-            /*                    onUncaughtError */ (error) => this.#handleUncaughtError(error),
-            /*                      onCaughtError */ (error) => console.error(error),
-            /*                 onRecoverableError */ (error) => console.error(error),
-            /*       onDefaultTransitionIndicator */ () => { },
+            /*                    onUncaughtError */(error) => this.#handleUncaughtError(error),
+            /*                      onCaughtError */(error) => console.error(error),
+            /*                 onRecoverableError */(error) => console.error(error),
+            /*       onDefaultTransitionIndicator */() => { },
         );
 
         if (this.#ownsTerminal) {
@@ -54,7 +56,12 @@ export default class Renderer {
             throw new Error("Cannot render using an unmounted Renderer.");
         }
 
+        if (!this.#isStarted) {
+            this.#start();
+        }
+
         this.#cliManager.initialize();
+
         this.#hasRendered = true;
         this.#renderError = null;
         this.#isRendering = true;
@@ -62,7 +69,12 @@ export default class Renderer {
         try {
             // Flush synchronously so the terminal reflects the new React tree
             // before render() returns.
-            reconciler.updateContainerSync(node, this.#root, null);
+            reconciler.updateContainerSync(
+                node,
+                this.#root,
+                null,
+            );
+
             reconciler.flushSyncWork();
 
             if (this.#renderError !== null) {
@@ -94,12 +106,52 @@ export default class Renderer {
             try {
                 this.#cliManager.restore();
             } finally {
+                this.#stop();
+
                 if (this.#ownsTerminal) {
                     hasActiveTerminalRenderer = false;
                 }
             }
         }
     }
+
+    #start(): void {
+        if (this.#isStarted || !this.#ownsTerminal) {
+            return;
+        }
+
+        this.#isStarted = true;
+
+        process.stdin.setRawMode?.(true);
+        process.stdin.resume();
+        process.stdin.on("data", this.#handleInput);
+    }
+
+    readonly #handleInput = (data: Buffer): void => {
+        // Ctrl+C
+        if (data.includes(0x03)) {
+            this.unmount();
+            process.exit(130);
+        }
+    };
+
+    #stop(): void {
+        if (!this.#isStarted) {
+            return;
+        }
+
+        this.#isStarted = false;
+
+        process.removeListener("SIGINT", this.#handleSigint);
+        process.stdin.pause();
+    }
+
+    readonly #handleSigint = (): void => {
+        this.unmount();
+
+        // 128 + SIGINT(2)
+        process.exit(130);
+    };
 
     #handleUncaughtError(error: Error): void {
         if (this.#isRendering) {

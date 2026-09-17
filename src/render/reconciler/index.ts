@@ -105,15 +105,6 @@ function redraw(container: NoctisContainer): void {
 
     let nextText = renderLayoutChildren(container.children);
 
-    // Keep terminal output on a complete line and track the newline for redraws.
-    if (
-        process.stdout.isTTY === true &&
-        nextText.length > 0 &&
-        !nextText.endsWith("\n")
-    ) {
-        nextText += "\n";
-    }
-
     if (nextText === container.renderedText) {
         return;
     }

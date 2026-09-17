@@ -46,7 +46,7 @@ export default class CliManager {
         const height = Math.max(0, this.#output.rows ?? 0);
 
         this.#output.write(
-            `${INITIALIZE_TERMINAL}${"\n".repeat(height)}\u001B[H`,
+            `${INITIALIZE_TERMINAL}${"\n".repeat(Math.max(0, height - 1))}\u001B[H`,
         );
         this.#isInitialized = true;
         this.#registerExitHandlers();
