@@ -127,6 +127,8 @@ function redraw(container: NoctisContainer): void {
         process.stdout.write(`${moveToStart}\u001B[0J`);
     }
 
+    process.stdout.write("\x1b[H\x1b[0J");
+
     if (nextText.length > 0) {
         process.stdout.write(nextText);
     }

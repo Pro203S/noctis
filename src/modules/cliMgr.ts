@@ -5,8 +5,8 @@ type ProcessLifecycle = Pick<
 >;
 type TerminationSignal = "SIGINT" | "SIGTERM";
 
-const INITIALIZE_TERMINAL = "\u001B[2J\u001B[H\u001B[?25l";
-const RESTORE_TERMINAL = "\u001B[?25h";
+const INITIALIZE_TERMINAL ="\u001B[2J\u001B[H\u001B[?25l\u001B[?7l";
+const RESTORE_TERMINAL ="\u001B[?7h\u001B[?25h";
 
 export default class CliManager {
     readonly #lifecycle: ProcessLifecycle;
