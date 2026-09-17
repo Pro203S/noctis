@@ -45,9 +45,11 @@ export default class CliManager {
 
         const height = Math.max(0, this.#output.rows ?? 0);
 
-        this.#output.write(
-            `${INITIALIZE_TERMINAL}${"\n".repeat(Math.max(0, height - 1))}\u001B[H`,
-        );
+        this.#output.write(`${INITIALIZE_TERMINAL}${"\n".repeat(Math.max(0, height - 1))}\u001B[H`);
+
+        this.#output.write("\x1b[?1003h"); // 마우스 tracking
+        this.#output.write("\x1b[?1006h"); // SGR 좌표 인코딩
+
         this.#isInitialized = true;
         this.#registerExitHandlers();
     }
@@ -59,6 +61,10 @@ export default class CliManager {
 
         this.#removeExitHandlers();
         this.#output.write(RESTORE_TERMINAL);
+
+        this.#output.write("\x1b[?1003l");
+        this.#output.write("\x1b[?1006l");
+
         this.#isInitialized = false;
     }
 
