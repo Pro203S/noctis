@@ -180,3 +180,67 @@ test("uses height as the main axis for flex columns", () => {
 
     assert.equal(gridToPlainText(result.grid), "  A\n   \n   \n   \n  B");
 });
+
+test("keeps relative layout space while moving its paint", () => {
+    const result = layoutView({
+        style: { width: 4, height: 2 },
+        children: [
+            viewChild({ position: "relative", left: 1 }, "A", 0),
+            textChild("B", 1),
+        ],
+    });
+
+    assert.equal(gridToPlainText(result.grid), " A  \nB   ");
+});
+
+test("excludes absolute children from auto size and paints by zIndex", () => {
+    const result = layoutView({
+        style: { width: 3, height: 1 },
+        children: [
+            viewChild({ position: "absolute", left: 0, zIndex: 2 }, "A", 0),
+            viewChild({ position: "absolute", left: 0, zIndex: 1 }, "B", 1),
+        ],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "A  ");
+});
+
+test("positions an absolute child from right and bottom", () => {
+    const result = layoutView({
+        style: { width: 4, height: 2 },
+        children: [
+            viewChild({ position: "absolute", right: 0, bottom: 0 }, "X", 0),
+        ],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "    \n   X");
+});
+
+test("keeps absolute children out of auto sizing and static offsets inert", () => {
+    const absoluteOnly = layoutView({
+        style: {},
+        children: [viewChild({ position: "absolute" }, "X", 0)],
+    });
+    const staticChild = layoutView({
+        style: { width: 2, height: 1 },
+        children: [viewChild({ position: "static", left: 1 }, "X", 0)],
+    });
+
+    assert.deepEqual(
+        { width: absoluteOnly.grid.width, height: absoluteOnly.grid.height },
+        { width: 0, height: 0 },
+    );
+    assert.equal(gridToPlainText(staticChild.grid), "X ");
+});
+
+test("uses source order when overlapping zIndex values are equal", () => {
+    const result = layoutView({
+        style: { width: 1, height: 1 },
+        children: [
+            viewChild({ position: "absolute", zIndex: 1 }, "A", 0),
+            viewChild({ position: "absolute", zIndex: 1 }, "B", 1),
+        ],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "B");
+});

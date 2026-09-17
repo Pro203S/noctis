@@ -24,6 +24,13 @@ type Distribution = {
     readonly gaps: readonly number[];
 };
 
+type PaintRecord = {
+    readonly result: LayoutResult;
+    readonly flowX: number;
+    readonly flowY: number;
+    readonly sourceIndex: number;
+};
+
 function resolveOwnDimension(
     explicit: number | undefined,
     stretch: number | undefined,
@@ -45,12 +52,15 @@ function layoutChildren(
     children: readonly LayoutChild[],
     maximumWidth?: number,
 ): LaidOutChild[] {
-    return children.map((child) => ({
-        child,
-        result: child.layout(
-            maximumWidth === undefined ? undefined : { maxWidth: maximumWidth },
-        ),
-    }));
+    return children.map((child) => {
+        const naturalResult = child.layout();
+        const result = maximumWidth === undefined ||
+            naturalResult.position.mode === "absolute"
+            ? naturalResult
+            : child.layout({ maxWidth: maximumWidth });
+
+        return { child, result };
+    });
 }
 
 function isInFlow(child: LaidOutChild): boolean {
@@ -108,26 +118,35 @@ function getNaturalFlexSize(
     };
 }
 
-function paintBlockChildren(
+function placeBlockChildren(
     children: readonly LaidOutChild[],
-    width: number,
-    height: number,
-) {
-    const grid = createGrid(width, height);
+): PaintRecord[] {
+    const records: PaintRecord[] = [];
     let y = 0;
 
     for (const child of children) {
         if (!isInFlow(child)) {
+            records.push({
+                result: child.result,
+                flowX: 0,
+                flowY: 0,
+                sourceIndex: child.child.sourceIndex,
+            });
             continue;
         }
 
         const { result } = child;
         y += result.margin.top;
-        overlayGrid(grid, result.grid, result.margin.left, y);
+        records.push({
+            result,
+            flowX: result.margin.left,
+            flowY: y,
+            sourceIndex: child.child.sourceIndex,
+        });
         y += result.grid.height + result.margin.bottom;
     }
 
-    return grid;
+    return records;
 }
 
 function distribute(
@@ -251,15 +270,22 @@ function crossOffset(
     }
 }
 
-function paintFlexChildren(
+function placeFlexChildren(
     children: readonly LaidOutChild[],
     width: number,
     height: number,
     direction: Direction,
     justifyContent: ViewStyle["justifyContent"],
     alignItems: ViewStyle["alignItems"],
-) {
-    const grid = createGrid(width, height);
+): PaintRecord[] {
+    const records: PaintRecord[] = children
+        .filter((child) => !isInFlow(child))
+        .map((child) => ({
+            result: child.result,
+            flowX: 0,
+            flowY: 0,
+            sourceIndex: child.child.sourceIndex,
+        }));
     const inFlow = children.filter(isInFlow);
     const mainSize = direction === "row" ? width : height;
     const usedMainSize = inFlow.reduce((size, { result }) => (
@@ -273,7 +299,7 @@ function paintFlexChildren(
     const crossSize = direction === "row" ? height : width;
     let mainPosition = distribution.leading;
 
-    inFlow.forEach(({ result }, index) => {
+    inFlow.forEach(({ child, result }, index) => {
         const mainBefore = direction === "row"
             ? result.margin.left
             : result.margin.top;
@@ -291,15 +317,71 @@ function paintFlexChildren(
         );
 
         mainPosition += mainBefore;
-        overlayGrid(
-            grid,
-            result.grid,
-            direction === "row" ? mainPosition : childCrossPosition,
-            direction === "row" ? childCrossPosition : mainPosition,
-        );
+        records.push({
+            result,
+            flowX: direction === "row" ? mainPosition : childCrossPosition,
+            flowY: direction === "row" ? childCrossPosition : mainPosition,
+            sourceIndex: child.sourceIndex,
+        });
         mainPosition += childMainSize + mainAfter;
         mainPosition += distribution.gaps[index] ?? 0;
     });
+
+    return records;
+}
+
+function getPaintCoordinates(
+    record: PaintRecord,
+    width: number,
+    height: number,
+): { x: number; y: number } {
+    const { result } = record;
+    const { position } = result;
+
+    if (position.mode === "static") {
+        return { x: record.flowX, y: record.flowY };
+    }
+
+    if (position.mode === "relative") {
+        return {
+            x: record.flowX + (
+                position.left ?? (position.right === undefined ? 0 : -position.right)
+            ),
+            y: record.flowY + (
+                position.top ?? (position.bottom === undefined ? 0 : -position.bottom)
+            ),
+        };
+    }
+
+    return {
+        x: position.left === undefined
+            ? position.right === undefined
+                ? result.margin.left
+                : width - position.right - result.grid.width - result.margin.right
+            : position.left + result.margin.left,
+        y: position.top === undefined
+            ? position.bottom === undefined
+                ? result.margin.top
+                : height - position.bottom - result.grid.height - result.margin.bottom
+            : position.top + result.margin.top,
+    };
+}
+
+function paintRecords(
+    records: readonly PaintRecord[],
+    width: number,
+    height: number,
+) {
+    const grid = createGrid(width, height);
+    const paintOrder = [...records].sort((left, right) => (
+        left.result.position.zIndex - right.result.position.zIndex ||
+        left.sourceIndex - right.sourceIndex
+    ));
+
+    for (const record of paintOrder) {
+        const { x, y } = getPaintCoordinates(record, width, height);
+        overlayGrid(grid, record.result.grid, x, y);
+    }
 
     return grid;
 }
@@ -361,8 +443,8 @@ export function layoutView(
             style.alignItems ?? "stretch",
         )
         : initialChildren;
-    const content = isFlex
-        ? paintFlexChildren(
+    const records = isFlex
+        ? placeFlexChildren(
             children,
             width,
             height,
@@ -370,7 +452,8 @@ export function layoutView(
             style.justifyContent,
             style.alignItems ?? "stretch",
         )
-        : paintBlockChildren(children, width, height);
+        : placeBlockChildren(children);
+    const content = paintRecords(records, width, height);
 
     return {
         grid: addPadding(content, style),
