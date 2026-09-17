@@ -42,7 +42,7 @@ export type ViewStyle = Partial<{
     "display": "flex",
     "flexDirection": "row" | "column",
     "justifyContent": "center" | "space-between" | "space-evenly" | "flex-start" | "flex-end",
-    "alignItems": "center" | "space-between" | "space-evenly" | "flex-start" | "flex-end"
+    "alignItems": "stretch" | "center" | "flex-start" | "flex-end"
 
     "backgroundColor": ConsoleColor,
     "backgroundGradient": GradientColor,

@@ -10,6 +10,7 @@ import type textComponent from "../../.cache/reconciler-types/render/reconciler/
 import type { NoctisText } from "../../.cache/reconciler-types/render/reconciler/components/Text.js";
 import type viewComponent from "../../.cache/reconciler-types/render/reconciler/components/View.js";
 import type { NoctisView } from "../../.cache/reconciler-types/render/reconciler/components/View.js";
+import type { ViewStyle } from "../../.cache/reconciler-types/render/styles.js";
 
 type Equal<Left, Right> =
     (<Value>() => Value extends Left ? 1 : 2) extends
@@ -78,6 +79,18 @@ type ReconcilerUsesHostInstances = Assert<
 type ReconcilerUsesRawTextInstances = Assert<
     Equal<ReconcilerTextInstance<typeof reconciler>, NoctisTextInstance>
 >;
+
+const validViewAlignment = {
+    alignItems: "stretch",
+} satisfies ViewStyle;
+
+const invalidViewAlignment = {
+    // @ts-expect-error space distribution belongs to justifyContent
+    alignItems: "space-between",
+} satisfies ViewStyle;
+
+void validViewAlignment;
+void invalidViewAlignment;
 
 export type ReconcilerTypeContract =
     | ViewUsesViewProps

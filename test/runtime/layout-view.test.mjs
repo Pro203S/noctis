@@ -76,3 +76,107 @@ test("resolves margin side precedence without painting margin cells", () => {
         "     \n     \n   x \n     \n     ",
     );
 });
+
+test("lays flex children in a row with space-between", () => {
+    const result = layoutView({
+        style: {
+            display: "flex",
+            width: 8,
+            height: 2,
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+        },
+        children: [textChild("A", 0), textChild("B", 1), textChild("C", 2)],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "        \nA   B  C");
+});
+
+test("stretches auto-sized children on a column cross axis", () => {
+    const calls = [];
+    const child = {
+        sourceIndex: 0,
+        layout(constraints = {}) {
+            calls.push(constraints);
+            const width = constraints.stretchWidth ?? 1;
+            return {
+                grid: textToGrid("x".padEnd(width)),
+                margin: ZERO_EDGES,
+                position: { mode: "static", zIndex: 0 },
+                autoWidth: true,
+                autoHeight: true,
+            };
+        },
+    };
+    const result = layoutView({
+        style: {
+            display: "flex",
+            flexDirection: "column",
+            width: 4,
+            alignItems: "stretch",
+        },
+        children: [child],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "x   ");
+    assert.deepEqual(calls.at(-1), { stretchWidth: 4 });
+});
+
+test("stacks block children vertically", () => {
+    const result = layoutView({
+        style: {},
+        children: [textChild("AA", 0), textChild("B", 1)],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "AA\nB ");
+});
+
+test("implements every justifyContent distribution", () => {
+    const cases = [
+        ["flex-start", "AB     "],
+        ["center", "  AB   "],
+        ["flex-end", "     AB"],
+        ["space-between", "A     B"],
+        ["space-evenly", "  A  B "],
+    ];
+
+    for (const [justifyContent, expected] of cases) {
+        const result = layoutView({
+            style: { display: "flex", width: 7, justifyContent },
+            children: [textChild("A", 0), textChild("B", 1)],
+        });
+        assert.equal(gridToPlainText(result.grid), expected, justifyContent);
+    }
+});
+
+test("implements every non-stretch cross-axis alignment", () => {
+    const cases = [
+        ["flex-start", "A  \n   \n   "],
+        ["center", "   \nA  \n   "],
+        ["flex-end", "   \n   \nA  "],
+    ];
+
+    for (const [alignItems, expected] of cases) {
+        const result = layoutView({
+            style: { display: "flex", width: 3, height: 3, alignItems },
+            children: [textChild("A")],
+        });
+        assert.equal(gridToPlainText(result.grid), expected, alignItems);
+    }
+});
+
+test("uses height as the main axis for flex columns", () => {
+    const result = layoutView({
+        style: {
+            display: "flex",
+            flexDirection: "column",
+            width: 3,
+            height: 5,
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+        },
+        children: [textChild("A", 0), textChild("B", 1)],
+    });
+
+    assert.equal(gridToPlainText(result.grid), "  A\n   \n   \n   \n  B");
+});
