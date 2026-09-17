@@ -1,4 +1,4 @@
-import Renderer from "./render/index.js";
+import Renderer from "@/render/index.js";
 
 export {
     Renderer

@@ -6,7 +6,9 @@ import type {
     NoctisTextInstance,
     reconciler,
 } from "../../.cache/reconciler-types/render/reconciler/index.js";
+import type textComponent from "../../.cache/reconciler-types/render/reconciler/components/Text.js";
 import type { NoctisText } from "../../.cache/reconciler-types/render/reconciler/components/Text.js";
+import type viewComponent from "../../.cache/reconciler-types/render/reconciler/components/View.js";
 import type { NoctisView } from "../../.cache/reconciler-types/render/reconciler/components/View.js";
 
 type Equal<Left, Right> =
@@ -45,11 +47,25 @@ type ViewUsesViewProps = Assert<
 
 type ViewIsAChild = Assert<NoctisView extends NoctisChild ? true : false>;
 
+type ViewRenderUsesViewProps = Assert<
+    Equal<
+        Parameters<typeof viewComponent.render>[0],
+        Readonly<ViewProps>
+    >
+>;
+
 type TextUsesTextProps = Assert<
     Equal<NoctisText["props"], Readonly<TextProps>>
 >;
 
 type TextIsAChild = Assert<NoctisText extends NoctisChild ? true : false>;
+
+type TextRenderUsesTextProps = Assert<
+    Equal<
+        Parameters<typeof textComponent.render>[0],
+        Readonly<TextProps>
+    >
+>;
 
 type RawTextIsAChild = Assert<
     NoctisTextInstance extends NoctisChild ? true : false
@@ -66,8 +82,10 @@ type ReconcilerUsesRawTextInstances = Assert<
 export type ReconcilerTypeContract =
     | ViewUsesViewProps
     | ViewIsAChild
+    | ViewRenderUsesViewProps
     | TextUsesTextProps
     | TextIsAChild
+    | TextRenderUsesTextProps
     | RawTextIsAChild
     | ReconcilerUsesHostInstances
     | ReconcilerUsesRawTextInstances;

@@ -1,8 +1,7 @@
 import React, { type ReactNode } from "react";
 import type { TextStyle } from "../render/styles.js";
-import { TEXT_TYPE } from "../render/reconciler/components/Text.js";
 
-export const COMPONENT_NAME = TEXT_TYPE;
+export const COMPONENT_NAME = "noctis-text" as const;
 
 export type TextProps = {
     style?: TextStyle;

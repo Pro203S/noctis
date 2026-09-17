@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "outDir": "../../.cache/path-alias",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "./entry.ts"
+  ],
+  "exclude": []
+}

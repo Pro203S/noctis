@@ -1,38 +1,32 @@
-import type { ViewProps } from "../../../components/View.js";
+import { COMPONENT_NAME, type ViewProps } from "../../../components/View.js";
 import type {
     HostComponent,
     HostProps,
     NoctisChild,
 } from "../index.js";
 
-export const VIEW_TYPE = "noctis-view";
-
 export type NoctisView = {
     readonly kind: "component";
-    readonly type: typeof VIEW_TYPE;
-    readonly component: HostComponent;
+    readonly type: typeof COMPONENT_NAME;
+    readonly component: HostComponent<Readonly<ViewProps>>;
     props: Readonly<ViewProps>;
     readonly children: NoctisChild[];
     hidden: boolean;
 };
 
-function getViewProps(props: HostProps): Readonly<ViewProps> {
-    return props as Readonly<ViewProps>;
-}
-
 export function createView(props: HostProps): NoctisView {
     return {
         "kind": "component",
-        "type": VIEW_TYPE,
+        "type": COMPONENT_NAME,
         "component": view,
-        "props": getViewProps(props),
+        "props": props as Readonly<ViewProps>,
         "children": [],
         "hidden": false,
     };
 }
 
-const view: HostComponent = {
-    type: VIEW_TYPE,
+const view: HostComponent<Readonly<ViewProps>> = {
+    type: COMPONENT_NAME,
 
     render(_props, children) {
         return children;

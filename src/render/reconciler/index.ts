@@ -10,9 +10,9 @@ import type { NoctisView } from "./components/View.js";
 
 export type HostProps = Readonly<Record<string, unknown>>;
 
-export type HostComponent = Readonly<{
+export type HostComponent<Props extends HostProps = HostProps> = Readonly<{
     type: string;
-    render(props: HostProps, children: string): string;
+    render(props: Props, children: string): string;
 }>;
 
 export type NoctisTextInstance = {
@@ -37,20 +37,20 @@ type HostContext = Readonly<Record<string, never>>;
 const rootHostContext: HostContext = Object.freeze({});
 
 type HostConfig = Reconciler.HostConfig<
-    /* Type                */  string,
-    /* Props               */  HostProps,
-    /* Container           */  NoctisContainer,
-    /* Instance            */  NoctisHostInstance,
-    /* TextInstance        */  NoctisTextInstance,
-    /* SuspenseInstance    */  never,
-    /* HydratableInstance  */  never,
-    /* FormInstance        */  never,
-    /* PublicInstance      */  NoctisChild,
-    /* HostContext         */  HostContext,
-    /* ChildSet            */  never,
-    /* TimeoutHandle       */  TimeoutHandle,
-    /* NoTimeout           */  -1,
-    /* TransitionStatus    */  null
+    /*                Type */  string,
+    /*               Props */  HostProps,
+    /*           Container */  NoctisContainer,
+    /*            Instance */  NoctisHostInstance,
+    /*        TextInstance */  NoctisTextInstance,
+    /*    SuspenseInstance */  never,
+    /*  HydratableInstance */  never,
+    /*        FormInstance */  never,
+    /*      PublicInstance */  NoctisChild,
+    /*         HostContext */  HostContext,
+    /*            ChildSet */  never,
+    /*       TimeoutHandle */  TimeoutHandle,
+    /*           NoTimeout */  -1,
+    /*    TransitionStatus */  null
 >;
 
 let currentUpdatePriority: Reconciler.EventPriority = NoEventPriority;

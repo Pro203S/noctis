@@ -1,8 +1,7 @@
 import React, { type ReactNode } from "react";
 import type { ViewStyle } from "../render/styles.js";
-import { VIEW_TYPE } from "../render/reconciler/components/View.js";
 
-export const COMPONENT_NAME = VIEW_TYPE;
+export const COMPONENT_NAME = "noctis-view" as const;
 
 export type ViewProps = {
     style?: ViewStyle;
