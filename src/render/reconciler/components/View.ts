@@ -22,20 +22,20 @@ function getViewProps(props: HostProps): Readonly<ViewProps> {
 
 export function createView(props: HostProps): NoctisView {
     return {
-        kind: "component",
-        type: VIEW_TYPE,
-        component: view,
-        props: getViewProps(props),
-        children: [],
-        hidden: false,
+        "kind": "component",
+        "type": VIEW_TYPE,
+        "component": view,
+        "props": getViewProps(props),
+        "children": [],
+        "hidden": false,
     };
 }
 
 const view: HostComponent = {
     type: VIEW_TYPE,
 
-    render(props, children) {
-
+    render(_props, children) {
+        return children;
     },
 };
 

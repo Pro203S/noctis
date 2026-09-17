@@ -22,12 +22,12 @@ function getTextProps(props: HostProps): Readonly<TextProps> {
 
 export function createText(props: HostProps): NoctisText {
     return {
-        kind: "component",
-        type: TEXT_TYPE,
-        component: text,
-        props: getTextProps(props),
-        children: [],
-        hidden: false,
+        "kind": "component",
+        "type": TEXT_TYPE,
+        "component": text,
+        "props": getTextProps(props),
+        "children": [],
+        "hidden": false,
     };
 }
 

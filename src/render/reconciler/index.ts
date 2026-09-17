@@ -31,6 +31,10 @@ export type NoctisContainer = {
 };
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
+type HostContext = Readonly<Record<string, never>>;
+
+// React uses null to indicate a missing host context.
+const rootHostContext: HostContext = Object.freeze({});
 
 type HostConfig = Reconciler.HostConfig<
     /* Type                */  string,
@@ -42,7 +46,7 @@ type HostConfig = Reconciler.HostConfig<
     /* HydratableInstance  */  never,
     /* FormInstance        */  never,
     /* PublicInstance      */  NoctisChild,
-    /* HostContext         */  null,
+    /* HostContext         */  HostContext,
     /* ChildSet            */  never,
     /* TimeoutHandle       */  TimeoutHandle,
     /* NoTimeout           */  -1,
@@ -105,7 +109,16 @@ function renderContainer(container: NoctisContainer): string {
 }
 
 function redraw(container: NoctisContainer): void {
-    const nextText = renderContainer(container);
+    let nextText = renderContainer(container);
+
+    // Keep terminal output on a complete line and track the newline for redraws.
+    if (
+        process.stdout.isTTY === true &&
+        nextText.length > 0 &&
+        !nextText.endsWith("\n")
+    ) {
+        nextText += "\n";
+    }
 
     if (nextText === container.renderedText) {
         return;
@@ -218,11 +231,11 @@ const hostConfig: HostConfig = {
     },
 
     getRootHostContext() {
-        return null;
+        return rootHostContext;
     },
 
-    getChildHostContext() {
-        return null;
+    getChildHostContext(parentHostContext) {
+        return parentHostContext;
     },
 
     getPublicInstance(instance) {
