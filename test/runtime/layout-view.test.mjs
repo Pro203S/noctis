@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { gridToPlainText } from "../../.cache/reconciler-runtime/render/layout/grid.js";
+import { serializeGrid } from "../../.cache/reconciler-runtime/render/layout/color.js";
 import { textToGrid } from "../../.cache/reconciler-runtime/render/layout/text.js";
 import { layoutView } from "../../.cache/reconciler-runtime/render/layout/view.js";
 
@@ -279,4 +280,89 @@ test("uses dotted edge glyphs", () => {
     });
 
     assert.equal(gridToPlainText(result.grid), "┌┄┐\n┊ ┊\n└┄┘");
+});
+
+test("paints content and padding but not border with a solid background", () => {
+    const result = layoutView({
+        style: {
+            width: 2,
+            height: 1,
+            padding: 1,
+            borderStyle: "solid",
+            backgroundColor: "#123456",
+        },
+        children: [],
+    });
+
+    assert.deepEqual(result.grid.cells[1][1].background, [18, 52, 86]);
+    assert.equal(result.grid.cells[0][0].background, undefined);
+});
+
+test("rotates a gradient using CSS angle semantics", () => {
+    const horizontal = layoutView({
+        style: {
+            width: 3,
+            height: 1,
+            backgroundColor: "red",
+            backgroundGradient: {
+                start: "#000000",
+                end: "#ffffff",
+                rotation: 90,
+            },
+        },
+        children: [],
+    });
+
+    assert.deepEqual(
+        horizontal.grid.cells[0].map((cell) => cell.background),
+        [[0, 0, 0], [128, 128, 128], [255, 255, 255]],
+    );
+});
+
+test("resolves named backgrounds and border foreground colors", () => {
+    const result = layoutView({
+        style: {
+            width: 1,
+            height: 1,
+            borderStyle: "solid",
+            borderColor: "brightRed",
+            backgroundColor: "brightBlue",
+        },
+        children: [],
+    });
+
+    assert.deepEqual(result.grid.cells[0][0].foreground, [241, 76, 76]);
+    assert.deepEqual(result.grid.cells[1][1].background, [59, 142, 234]);
+});
+
+test("maps a 180 degree gradient from top to bottom", () => {
+    const result = layoutView({
+        style: {
+            width: 1,
+            height: 3,
+            backgroundGradient: {
+                start: "#000",
+                end: "#fff",
+                rotation: 180,
+            },
+        },
+        children: [],
+    });
+
+    assert.deepEqual(
+        result.grid.cells.map((row) => row[0].background),
+        [[0, 0, 0], [128, 128, 128], [255, 255, 255]],
+    );
+});
+
+test("serializes adjacent cell colors and resets at line boundaries", () => {
+    const result = layoutView({
+        style: { width: 1, height: 1, backgroundColor: "#123456" },
+        children: [textChild("x")],
+    });
+
+    assert.equal(
+        serializeGrid(result.grid, 3),
+        "\u001B[48;2;18;52;86mx\u001B[0m",
+    );
 });
