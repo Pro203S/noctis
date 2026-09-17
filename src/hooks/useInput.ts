@@ -1,50 +1,21 @@
-import { PassThrough } from "node:stream";
-import { emitKeypressEvents, type Key } from "node:readline";
 import { useEffect, useState } from "react";
+import inputManager, { type PressedKey, } from "../modules/inputMgr.js";
 
-type PressedKey = {
-    name: string;
-    shift: boolean;
-    ctrl: boolean;
-    alt: boolean;
-    meta: boolean;
-};
-
-const keyboardStream = new PassThrough();
-
-emitKeypressEvents(keyboardStream);
-
-export default function useInput() {
-    const [lastInputed, setLastInputed] = useState<PressedKey>();
+export default function useInput(): PressedKey | undefined {
+    const [lastInputed, setLastInputed] =
+        useState<PressedKey>();
 
     useEffect(() => {
-        const onData = (data: Buffer) => {
-            const input = data.toString();
+        inputManager.initialize();
 
-            // SGR Mouse Event
-            if (/^\x1b\[<\d+;\d+;\d+[Mm]$/.test(input)) {
-                return;
-            }
-
-            keyboardStream.write(data);
+        const cb = (key: PressedKey) => {
+            setLastInputed(key);
         };
 
-        const onKeypress = (str: string | undefined, key: Key) => {
-            setLastInputed({
-                name: key.name ?? str ?? "",
-                shift: key.shift ?? false,
-                ctrl: key.ctrl ?? false,
-                alt: key.meta ?? false,
-                meta: false,
-            });
-        };
-
-        process.stdin.on("data", onData);
-        keyboardStream.on("keypress", onKeypress);
+        inputManager.on("keypress", cb);
 
         return () => {
-            process.stdin.off("data", onData);
-            keyboardStream.off("keypress", onKeypress);
+            inputManager.off("keypress", cb);
         };
     }, []);
 
