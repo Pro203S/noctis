@@ -32,7 +32,7 @@ export function createText(props: HostProps): NoctisText {
 const text: HostComponent<Readonly<TextProps>> = {
     type: COMPONENT_NAME,
 
-    render(_props, children) {
+    render(props, children) {
         return children;
     },
 };
