@@ -2,4 +2,4 @@
 
 NoctUI - A React renderer for terminal user interfaces.
 
-# THIS IS INCOMPLETE PROJECT.
+[한국어](./docs/ko/README.md) [ENGLISH](./docs/en/README.md)
