@@ -1,9 +1,8 @@
-import { View, Text, useMouse } from "noctui";
+import { Button, View } from "noctui";
 
 export default function App() {
-    const mouse = useMouse();
 
     return <View>
-        <Text>{mouse ? JSON.stringify(mouse, null, 4) : "Try using your mouse in the terminal"}</Text>
+        <Button label="pressme" />
     </View>;
 }
