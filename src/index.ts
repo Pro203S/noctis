@@ -32,10 +32,12 @@ import useInput from "./hooks/useInput.js";
 import useMouse from "./hooks/useMouse.js";
 import useCursor from "./hooks/useCursor.js";
 import Button from "./components/Button.js";
+import useMouseByKeyboard from "./hooks/useMouseByKeyboard.js";
 
 export {
     useConsoleSize,
     useInput,
     useMouse,
-    useCursor
+    useCursor,
+    useMouseByKeyboard
 };

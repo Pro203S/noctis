@@ -27,21 +27,26 @@ export default function Button(props: Props) {
         if (!mouse || !ref.current) return;
 
         const hovering =
-            ref.current.x <= mouse.x && mouse.x <= ref.current.x + ref.current.width &&
-            ref.current.y <= mouse.y && mouse.y <= ref.current.y + ref.current.height;
+            ref.current.x <= mouse.x &&
+            mouse.x < ref.current.x + ref.current.width &&
+            ref.current.y <= mouse.y &&
+            mouse.y < ref.current.y + ref.current.height;
 
-        if (hovering && (mouse.action === "move" || mouse.action === "drag")) {
+        if (
+            hovering &&
+            (mouse.action === "move" || mouse.action === "drag")
+        ) {
             setCurrentStyle(v => hoverStyle ?? {
                 ...v,
-                "borderStyle": "doubleline"
+                "borderStyle": "doubleline",
             });
         } else {
-            setCurrentStyle(v => hoverStyle ?? INITIAL_STYLE);
+            setCurrentStyle(style ?? INITIAL_STYLE);
         }
 
         if (hovering && mouse.action === "press") {
             onClick?.();
-            setCurrentStyle(v => hoverStyle ?? {
+            setCurrentStyle(v => clickStyle ?? {
                 ...v,
                 "borderStyle": "doubleline",
                 "borderColor": "blue"

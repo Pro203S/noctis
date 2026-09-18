@@ -73,6 +73,36 @@ function renderTextChild(child: NoctUIChild): string {
     return gridToPlainText(layoutNode(child).grid);
 }
 
+function resolveAbsoluteLayout(
+    child: NoctUIChild,
+    parentX = 0,
+    parentY = 0,
+): void {
+    if (
+        child.kind !== "component" ||
+        child.type !== VIEW_COMPONENT_NAME
+    ) {
+        return;
+    }
+
+    const x = parentX + child.layout.x;
+    const y = parentY + child.layout.y;
+
+    child.layout = {
+        ...child.layout,
+        x,
+        y,
+    };
+
+    for (const nestedChild of child.children) {
+        resolveAbsoluteLayout(
+            nestedChild,
+            x,
+            y,
+        );
+    }
+}
+
 function layoutNode(
     child: NoctUIChild,
     constraints: LayoutConstraints = {},
@@ -88,14 +118,21 @@ function layoutNode(
     switch (child.type) {
         case TEXT_COMPONENT_NAME: {
             const children = child.children.map(renderTextChild).join("");
+
             return textResult(
                 child.component.render(child.props, children),
                 constraints,
             );
         }
+
         case VIEW_COMPONENT_NAME: {
             const children = child.children.map(createLayoutChild);
-            return child.component.render(child.props, children, constraints);
+
+            return child.component.render(
+                child.props,
+                children,
+                constraints,
+            );
         }
     }
 }
@@ -106,18 +143,25 @@ function createLayoutChild(
 ): LayoutChild {
     return {
         sourceIndex,
+
         layout(constraints) {
             return layoutNode(child, constraints);
         },
+
         setLayout(layout) {
-            if (child.kind === "component" && child.type === VIEW_COMPONENT_NAME) {
+            if (
+                child.kind === "component" &&
+                child.type === VIEW_COMPONENT_NAME
+            ) {
                 child.layout = layout;
             }
         },
     };
 }
 
-export function renderLayoutChildren(children: readonly NoctUIChild[]): string {
+export function renderLayoutChildren(
+    children: readonly NoctUIChild[],
+): string {
     const root = layoutView({
         style: {},
         children: children.map(createLayoutChild),

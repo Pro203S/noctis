@@ -34,6 +34,10 @@ class InputManager extends EventEmitter<InputManagerEvents> {
     #buffer = "";
     #initialized = false;
 
+    emitMouse(mouse: MouseInput): void {
+        this.emit("mouse", mouse);
+    }
+
     constructor() {
         super();
 
@@ -244,9 +248,9 @@ class InputManager extends EventEmitter<InputManagerEvents> {
             }
         }
 
-        this.emit("mouse", {
-            x,
-            y,
+        this.emitMouse({
+            x: x - 1,
+            y: y - 1,
             button,
             action,
             shift,

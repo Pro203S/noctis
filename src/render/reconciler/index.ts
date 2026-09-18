@@ -105,6 +105,8 @@ function redraw(container: NoctUIContainer): void {
         return;
     }
 
+    process.stdout.write("\x1b[s");
+
     let nextText = renderLayoutChildren(container.children);
 
     if (nextText === container.renderedText) {
@@ -136,6 +138,8 @@ function redraw(container: NoctUIContainer): void {
     }
 
     container.renderedText = nextText;
+
+    process.stdout.write("\x1b[u");
 }
 
 const hostConfig: HostConfig = {
