@@ -1,12 +1,12 @@
-import { Text, useConsoleSize, useMouse, useInput, View, useCursor } from "noctui";
-import { useEffect, useState } from "react";
+import { useConsoleSize, useMouse, useInput, View, useCursor, ViewRef } from "noctui";
+import { useEffect, useRef } from "react";
 
 export default function App() {
     const { width, height } = useConsoleSize();
     const stdIn = useInput();
     const mouse = useMouse();
     const cursor = useCursor({ "show": true });
-    const [count, setCount] = useState(0);
+    const ref = useRef<ViewRef>(null);
 
     useEffect(() => {
         if (!mouse) return;
@@ -15,21 +15,15 @@ export default function App() {
         cursor.y(mouse.y);
     }, [mouse]);
 
-    useEffect(() => {
-        setCount(v => v + 1);
-    }, [stdIn]);
-
     return (
-        <View style={{
-            "backgroundColor": "blue",
-            width,
-            height,
-            "justifyContent": "center",
-            "alignItems": "center",
-            "display": "flex"
-        }}>
-            <Text>{width}, {height}, {JSON.stringify(stdIn)}, {JSON.stringify(mouse)}</Text>
-            <Text>{count}</Text>
+        <View
+            style={{
+                "backgroundColor": "blue",
+                "paddingTop": 10
+            }}
+            ref={ref}
+        >
+            
         </View>
     );
 }

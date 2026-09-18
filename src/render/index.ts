@@ -51,6 +51,10 @@ export default class Renderer {
         }
     }
 
+    setTitle(title: string): void {
+        process.stdout.write(`\x1b]0;${title}\x07`);
+    }
+
     render(node: ReactNode): void {
         if (this.#isUnmounted) {
             throw new Error("Cannot render using an unmounted Renderer.");
