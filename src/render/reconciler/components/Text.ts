@@ -1,4 +1,4 @@
-import { COMPONENT_NAME, type TextProps } from "../../../components/Text.js";
+import { COMPONENT_NAME, type TextProps, type TextRef } from "../../../components/Text.js";
 import type {
     HostComponent,
     HostProps,
@@ -12,28 +12,60 @@ export type NoctisText = {
     props: Readonly<TextProps>;
     readonly children: NoctisChild[];
     hidden: boolean;
+    readonly publicInstance: TextRef;
 };
 
-function getTextProps(props: HostProps): Readonly<TextProps> {
-    return props as Readonly<TextProps>;
+function getTextContent(children: readonly NoctisChild[]): string {
+    return children.map((child) => {
+        if (child.hidden) return "";
+        if (child.kind === "text") return child.text;
+        if (child.type === COMPONENT_NAME) return getTextContent(child.children);
+        return "";
+    }).join("");
 }
 
 export function createText(props: HostProps): NoctisText {
-    return {
+    let instance: NoctisText;
+
+    instance = {
         "kind": "component",
         "type": COMPONENT_NAME,
         "component": text,
-        "props": getTextProps(props),
+        "props": props as Readonly<TextProps>,
         "children": [],
         "hidden": false,
+        "publicInstance": {
+            get content() {
+                return getTextContent(instance.children);
+            },
+            set content(value: string) {
+                instance.children.length = 0;
+                instance.children.push({
+                    "kind": "text",
+                    "text": value,
+                    "hidden": false,
+                });
+            },
+        },
     };
+
+    return instance;
 }
 
 const text: HostComponent<Readonly<TextProps>> = {
     type: COMPONENT_NAME,
 
     render(props, children) {
-        return children;
+        const { style } = props;
+        if (!style) return children;
+
+        let result = children;
+
+        if (style.color) {
+            
+        }
+
+        return result;
     },
 };
 

@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 
-export default function useCursor() {
-    const [showCursor, setShowCursor] = useState(false);
-    const [x, setX] = useState(0);
-    const [y, setY] = useState(0);
+type Parameters = Partial<{
+    "show": boolean,
+    "x": boolean,
+    "y": boolean
+}>;
+
+export default function useCursor(params?: Parameters) {
+    const [showCursor, setShowCursor] = useState(params?.show ?? false);
+    const [x, setX] = useState(params?.x ?? 0);
+    const [y, setY] = useState(params?.y ?? 0);
 
     useEffect(() => {
         process.stdout.write(`\x1b[${y};${x}H`);

@@ -7,6 +7,8 @@ import {
 import { createHostInstance } from "./components/index.js";
 import { renderLayoutChildren } from "../layout/index.js";
 import type { NoctisText } from "./components/Text.js";
+import type { TextRef } from "../../components/Text.js";
+import type { ViewRef } from "../../components/View.js";
 import type { NoctisView } from "./components/View.js";
 
 export type HostProps = Readonly<Record<string, unknown>>;
@@ -52,7 +54,7 @@ type HostConfig = Reconciler.HostConfig<
     /*    SuspenseInstance */  never,
     /*  HydratableInstance */  never,
     /*        FormInstance */  never,
-    /*      PublicInstance */  NoctisChild,
+    /*      PublicInstance */  ViewRef | TextRef | NoctisTextInstance,
     /*         HostContext */  HostContext,
     /*            ChildSet */  never,
     /*       TimeoutHandle */  TimeoutHandle,
@@ -226,7 +228,11 @@ const hostConfig: HostConfig = {
     },
 
     getPublicInstance(instance) {
-        return instance;
+        if (instance.kind === "text") {
+            return instance;
+        }
+
+        return instance.publicInstance;
     },
 
     prepareForCommit() {

@@ -30,6 +30,7 @@ type Distribution = {
 };
 
 type PaintRecord = {
+    readonly child: LayoutChild;
     readonly result: LayoutResult;
     readonly flowX: number;
     readonly flowY: number;
@@ -165,6 +166,7 @@ function placeBlockChildren(
     for (const child of children) {
         if (!isInFlow(child)) {
             records.push({
+                child: child.child,
                 result: child.result,
                 flowX: 0,
                 flowY: 0,
@@ -176,6 +178,7 @@ function placeBlockChildren(
         const { result } = child;
         y += result.margin.top;
         records.push({
+            child: child.child,
             result,
             flowX: result.margin.left,
             flowY: y,
@@ -319,6 +322,7 @@ function placeFlexChildren(
     const records: PaintRecord[] = children
         .filter((child) => !isInFlow(child))
         .map((child) => ({
+            child: child.child,
             result: child.result,
             flowX: 0,
             flowY: 0,
@@ -356,6 +360,7 @@ function placeFlexChildren(
 
         mainPosition += mainBefore;
         records.push({
+            child,
             result,
             flowX: direction === "row" ? mainPosition : childCrossPosition,
             flowY: direction === "row" ? childCrossPosition : mainPosition,
@@ -418,6 +423,12 @@ function paintRecords(
 
     for (const record of paintOrder) {
         const { x, y } = getPaintCoordinates(record, width, height);
+        record.child.setLayout({
+            x,
+            y,
+            width: record.result.grid.width,
+            height: record.result.grid.height,
+        });
         overlayGrid(grid, record.result.grid, x, y);
     }
 

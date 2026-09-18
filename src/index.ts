@@ -4,12 +4,14 @@ export {
     Renderer
 };
 
-import View from "./components/View.js";
-import Text from "./components/Text.js";
+import View, { type ViewRef } from "./components/View.js";
+import Text, { type TextRef } from "./components/Text.js";
 
 export {
     View,
-    Text
+    Text,
+    type ViewRef,
+    type TextRef
 };
 
 import useConsoleSize from "./hooks/useConsoleSize.js";

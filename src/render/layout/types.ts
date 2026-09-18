@@ -53,9 +53,17 @@ export type LayoutResult = {
     readonly autoHeight: boolean;
 };
 
+export type LayoutRect = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
 export type LayoutChild = {
     readonly sourceIndex: number;
     readonly layout: (constraints?: LayoutConstraints) => LayoutResult;
+    readonly setLayout: (layout: LayoutRect) => void;
 };
 
 export type ViewLayoutInput = {

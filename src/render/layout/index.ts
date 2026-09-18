@@ -109,6 +109,11 @@ function createLayoutChild(
         layout(constraints) {
             return layoutNode(child, constraints);
         },
+        setLayout(layout) {
+            if (child.kind === "component" && child.type === VIEW_COMPONENT_NAME) {
+                child.layout = layout;
+            }
+        },
     };
 }
 

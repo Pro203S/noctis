@@ -18,6 +18,7 @@
         "./src/*"
       ]
     },
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "declaration": true,
     "strict": true,
