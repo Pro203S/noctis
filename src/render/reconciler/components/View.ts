@@ -9,10 +9,10 @@ import type {
 import type {
     HostComponent,
     HostProps,
-    NoctisChild,
+    NoctUIChild,
 } from "../index.js";
 
-export type NoctisView = {
+export type NoctUIView = {
     readonly kind: "component";
     readonly type: typeof COMPONENT_NAME;
     readonly component: HostComponent<
@@ -22,14 +22,14 @@ export type NoctisView = {
         LayoutConstraints
     >;
     props: Readonly<ViewProps>;
-    readonly children: NoctisChild[];
+    readonly children: NoctUIChild[];
     hidden: boolean;
     layout: LayoutRect;
     readonly publicInstance: ViewRef;
 };
 
-export function createView(props: HostProps): NoctisView {
-    let instance: NoctisView;
+export function createView(props: HostProps): NoctUIView {
+    let instance: NoctUIView;
 
     instance = {
         "kind": "component",

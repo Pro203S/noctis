@@ -3,7 +3,7 @@ import { ConcurrentRoot } from "react-reconciler/constants.js";
 import {
     createContainer,
     reconciler,
-    type NoctisContainer,
+    type NoctUIContainer,
 } from "./reconciler/index.js";
 import CliManager from "../modules/cliMgr.js";
 
@@ -13,7 +13,7 @@ let hasActiveTerminalRenderer = false;
 
 export default class Renderer {
     readonly #cliManager: CliManager;
-    readonly #container: NoctisContainer;
+    readonly #container: NoctUIContainer;
     readonly #root: ReconcilerRoot;
     readonly #ownsTerminal: boolean;
 

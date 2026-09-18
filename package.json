@@ -1,5 +1,5 @@
 {
-    "name": "noctis",
+    "name": "noctui",
     "version": "0.0.0",
     "description": "Terminal User Interfaces",
     "type": "module",
@@ -26,7 +26,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Pro203S/noctis.git"
+        "url": "git+https://github.com/Pro203S/noctui.git"
     },
     "keywords": [
         "terminal",
@@ -34,9 +34,9 @@
         "ui",
         "render"
     ],
-    "homepage": "https://github.com/Pro203S/noctis",
+    "homepage": "https://github.com/Pro203S/noctui",
     "bugs": {
-        "url": "https://github.com/Pro203S/noctis/issues"
+        "url": "https://github.com/Pro203S/noctui/issues"
     },
     "peerDependencies": {
         "react": "^19.3.0"

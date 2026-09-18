@@ -1,6 +1,6 @@
 import { COMPONENT_NAME as TEXT_COMPONENT_NAME } from "../../components/Text.js";
 import { COMPONENT_NAME as VIEW_COMPONENT_NAME } from "../../components/View.js";
-import type { NoctisChild } from "../reconciler/index.js";
+import type { NoctUIChild } from "../reconciler/index.js";
 import { serializeGrid } from "./color.js";
 import { createGrid, gridToPlainText, resizeGrid } from "./grid.js";
 import { normalizeCellCount, ZERO_EDGES } from "./style.js";
@@ -56,7 +56,7 @@ function textResult(
     };
 }
 
-function renderTextChild(child: NoctisChild): string {
+function renderTextChild(child: NoctUIChild): string {
     if (child.hidden) {
         return "";
     }
@@ -74,7 +74,7 @@ function renderTextChild(child: NoctisChild): string {
 }
 
 function layoutNode(
-    child: NoctisChild,
+    child: NoctUIChild,
     constraints: LayoutConstraints = {},
 ): LayoutResult {
     if (child.hidden) {
@@ -101,7 +101,7 @@ function layoutNode(
 }
 
 function createLayoutChild(
-    child: NoctisChild,
+    child: NoctUIChild,
     sourceIndex: number,
 ): LayoutChild {
     return {
@@ -117,7 +117,7 @@ function createLayoutChild(
     };
 }
 
-export function renderLayoutChildren(children: readonly NoctisChild[]): string {
+export function renderLayoutChildren(children: readonly NoctUIChild[]): string {
     const root = layoutView({
         style: {},
         children: children.map(createLayoutChild),

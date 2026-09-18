@@ -1,7 +1,7 @@
 import React, { type ReactNode, type Ref } from "react";
 import type { ViewStyle } from "../render/styles.js";
 
-export const COMPONENT_NAME = "noctis-view" as const;
+export const COMPONENT_NAME = "noctui-view" as const;
 
 export type ViewRef = {
     readonly x: number;

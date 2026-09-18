@@ -1,12 +1,12 @@
 import type { HostComponent, HostProps } from "../index.js";
 import text, {
     createText,
-    type NoctisText,
+    type NoctUIText,
 } from "./Text.js";
 import { COMPONENT_NAME as TEXT_COMPONENT_NAME } from "../../../components/Text.js";
 import view, {
     createView,
-    type NoctisView,
+    type NoctUIView,
 } from "./View.js";
 import { COMPONENT_NAME as VIEW_COMPONENT_NAME } from "../../../components/View.js";
 
@@ -30,7 +30,7 @@ export function resolveHostComponent(type: string): HostDefinition {
 export function createHostInstance(
     type: string,
     props: HostProps,
-): NoctisView | NoctisText {
+): NoctUIView | NoctUIText {
     resolveHostComponent(type);
 
     switch (type) {

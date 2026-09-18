@@ -1,4 +1,4 @@
-import { Text, useConsoleSize, useMouse, useInput, View, useCursor } from "noctis";
+import { Text, useConsoleSize, useMouse, useInput, View, useCursor } from "noctui";
 import { useEffect, useState } from "react";
 
 export default function App() {

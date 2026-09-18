@@ -2,20 +2,20 @@ import { COMPONENT_NAME, type TextProps, type TextRef } from "../../../component
 import type {
     HostComponent,
     HostProps,
-    NoctisChild,
+    NoctUIChild,
 } from "../index.js";
 
-export type NoctisText = {
+export type NoctUIText = {
     readonly kind: "component";
     readonly type: typeof COMPONENT_NAME;
     readonly component: HostComponent<Readonly<TextProps>>;
     props: Readonly<TextProps>;
-    readonly children: NoctisChild[];
+    readonly children: NoctUIChild[];
     hidden: boolean;
     readonly publicInstance: TextRef;
 };
 
-function getTextContent(children: readonly NoctisChild[]): string {
+function getTextContent(children: readonly NoctUIChild[]): string {
     return children.map((child) => {
         if (child.hidden) return "";
         if (child.kind === "text") return child.text;
@@ -24,8 +24,8 @@ function getTextContent(children: readonly NoctisChild[]): string {
     }).join("");
 }
 
-export function createText(props: HostProps): NoctisText {
-    let instance: NoctisText;
+export function createText(props: HostProps): NoctUIText {
+    let instance: NoctUIText;
 
     instance = {
         "kind": "component",

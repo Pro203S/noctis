@@ -6,10 +6,10 @@ import {
 } from "react-reconciler/constants.js";
 import { createHostInstance } from "./components/index.js";
 import { renderLayoutChildren } from "../layout/index.js";
-import type { NoctisText } from "./components/Text.js";
+import type { NoctUIText } from "./components/Text.js";
 import type { TextRef } from "../../components/Text.js";
 import type { ViewRef } from "../../components/View.js";
-import type { NoctisView } from "./components/View.js";
+import type { NoctUIView } from "./components/View.js";
 
 export type HostProps = Readonly<Record<string, unknown>>;
 
@@ -23,18 +23,18 @@ export type HostComponent<
     render(props: Props, children: Children, constraints?: Constraints): Output;
 }>;
 
-export type NoctisTextInstance = {
+export type NoctUITextInstance = {
     readonly kind: "text";
     text: string;
     hidden: boolean;
 };
 
-export type NoctisHostInstance = NoctisView | NoctisText;
+export type NoctUIHostInstance = NoctUIView | NoctUIText;
 
-export type NoctisChild = NoctisHostInstance | NoctisTextInstance;
+export type NoctUIChild = NoctUIHostInstance | NoctUITextInstance;
 
-export type NoctisContainer = {
-    readonly children: NoctisChild[];
+export type NoctUIContainer = {
+    readonly children: NoctUIChild[];
     renderedText: string;
     preserveOutput: boolean;
 };
@@ -48,13 +48,13 @@ const rootHostContext: HostContext = Object.freeze({});
 type HostConfig = Reconciler.HostConfig<
     /*                Type */  string,
     /*               Props */  HostProps,
-    /*           Container */  NoctisContainer,
-    /*            Instance */  NoctisHostInstance,
-    /*        TextInstance */  NoctisTextInstance,
+    /*           Container */  NoctUIContainer,
+    /*            Instance */  NoctUIHostInstance,
+    /*        TextInstance */  NoctUITextInstance,
     /*    SuspenseInstance */  never,
     /*  HydratableInstance */  never,
     /*        FormInstance */  never,
-    /*      PublicInstance */  ViewRef | TextRef | NoctisTextInstance,
+    /*      PublicInstance */  ViewRef | TextRef | NoctUITextInstance,
     /*         HostContext */  HostContext,
     /*            ChildSet */  never,
     /*       TimeoutHandle */  TimeoutHandle,
@@ -67,12 +67,12 @@ let currentUpdatePriority: Reconciler.EventPriority = NoEventPriority;
 const hostTransitionContext = createContext<null>(null) as unknown as
     Reconciler.ReactContext<null>;
 
-function append(children: NoctisChild[], child: NoctisChild): void {
+function append(children: NoctUIChild[], child: NoctUIChild): void {
     remove(children, child);
     children.push(child);
 }
 
-function remove(children: NoctisChild[], child: NoctisChild): void {
+function remove(children: NoctUIChild[], child: NoctUIChild): void {
     const index = children.indexOf(child);
 
     if (index !== -1) {
@@ -81,9 +81,9 @@ function remove(children: NoctisChild[], child: NoctisChild): void {
 }
 
 function insert(
-    children: NoctisChild[],
-    child: NoctisChild,
-    beforeChild: NoctisChild,
+    children: NoctUIChild[],
+    child: NoctUIChild,
+    beforeChild: NoctUIChild,
 ): void {
     if (child === beforeChild) {
         return;
@@ -100,7 +100,7 @@ function insert(
     children.splice(index, 0, child);
 }
 
-function redraw(container: NoctisContainer): void {
+function redraw(container: NoctUIContainer): void {
     if (container.preserveOutput) {
         return;
     }
@@ -334,7 +334,7 @@ const hostConfig: HostConfig = {
     },
 };
 
-export function createContainer(): NoctisContainer {
+export function createContainer(): NoctUIContainer {
     return {
         children: [],
         renderedText: "",
