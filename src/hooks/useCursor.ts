@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 type Parameters = Partial<{
     "show": boolean,
-    "x": boolean,
-    "y": boolean
+    "x": number,
+    "y": number
 }>;
 
 export default function useCursor(params?: Parameters) {
@@ -23,8 +23,11 @@ export default function useCursor(params?: Parameters) {
     }, [showCursor]);
 
     return {
-        "show": setShowCursor,
-        "x": setX,
-        "y": setY
+        "setShow": setShowCursor,
+        "setX": setX,
+        "setY": setY,
+        "show": showCursor,
+        "x": x,
+        "y": y
     };
 }
